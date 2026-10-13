@@ -1,8 +1,8 @@
 # VFX ToolBox
 
-**0.9.9 beta · After Effects · tracking, versioning, PSD capture, Plates and H.265 proxies**
+**0.9.9 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
-VFX ToolBox captures the current composition frame onto a selected 3D plane. It can also save the complete frame at the playhead as an incrementally numbered, flattened PSD Plate.
+VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates same-resolution H.265 proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
 ## Use
 
