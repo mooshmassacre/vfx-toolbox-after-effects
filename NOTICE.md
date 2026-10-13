@@ -11,7 +11,7 @@ The v1.7 source links to https://aescripts.com/authors/m-p/nt-productions/.
 
 VFX ToolBox is not the authors' official Version 2. Attribution does not imply affiliation or endorsement.
 
-No explicit license grant was found in the inspected v1.7 file. This package does not assign a new license to the original work or establish redistribution permissions. Attribution records provenance; it is not a substitute for a license.
+No explicit license grant was found in the inspected v1.7 file. The MIT License in this repository applies to the original VFX ToolBox contributions and does not assign a new license to the original work or establish redistribution permissions for it. Attribution records provenance; it is not a substitute for a license.
 
 # Changes in 0.1.2 beta
 

@@ -66,6 +66,10 @@ The direct After Effects PNG method does not embed an ICC profile, so its conver
 
 VFX ToolBox is an independent custom modernization of the workflow in **AE-3DPlaneStamp v1.7**, originally credited to **Nate Lovell / NT Productions and Hashi**. It is not their official Version 2 and does not imply endorsement. No new license is asserted for the original work; see `NOTICE.md`.
 
+## License
+
+Original VFX ToolBox contributions are released under the [MIT License](LICENSE), copyright © 2026 Moosh Massacre. Portions derived from or attributable to AE-3DPlaneStamp v1.7 remain subject to the rights of their respective authors; see [NOTICE.md](NOTICE.md).
+
 ## Verification
 
 The included checks cover synthetic PNG and 8/16/32-bpc PSD files, incompatible outputs, sequential filenames, native template selection, render-queue isolation and nonzero timeline origins. They do not replace testing inside After Effects.
