@@ -242,3 +242,9 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Opens After Effects' native Save As dialog when Versioning is used on an unsaved project.
 - Keeps the chosen initial project open and begins numbered versioning on the next click.
 - Treats dialog cancellation as a clean cancellation without creating another file.
+
+# Pre-composition motion tracking in 0.9.10 beta
+
+- Allows Motion Tracker to start from a selected pre-composition layer as well as imported movies and image sequences.
+- Creates and organizes the same sequential tracker Null for either source type.
+- Keeps 3D Camera Tracker validation limited to supported footage sources.

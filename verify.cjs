@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.9\.9 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.9\.10 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -230,6 +230,12 @@ test('Motion Tracker creates the next numbered null and stores its source in Ass
  const motionBody=source.slice(source.indexOf('function applyMotionTracker('),source.indexOf('function chooseTrackerMode('));
  assert(/createMotionTrackerNull\(comp, layer\)/.test(motionBody));
  assert(/app\.executeCommand\(2568\)/.test(motionBody));
+});
+test('Motion Tracker accepts pre-composition layers',()=>{
+ const motionBody=source.slice(source.indexOf('function applyMotionTracker('),source.indexOf('function chooseTrackerMode('));
+ assert(/layer\.source instanceof CompItem/.test(motionBody));
+ assert(/!isPrecomp && !isTrackableFootage/.test(motionBody));
+ assert(/movie, image-sequence, or pre-composition layer/.test(motionBody));
 });
 test('Versioning saves the next project file and keeps it open',()=>{
  assert(/function saveNextProjectVersion\(\)/.test(source));

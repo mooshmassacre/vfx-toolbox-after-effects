@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.9.9 beta (2026-10-13)
+ * VFX ToolBox — 0.9.10 beta (2026-10-13)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.9.9 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.9.10 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false;
 
@@ -763,12 +763,14 @@
         }
     }
     function applyMotionTracker(comp) {
-        if (!(comp instanceof CompItem)) fail("Open a composition and select one footage layer.");
-        if (comp.selectedLayers.length !== 1) fail("Select exactly one footage layer in the active composition.");
+        if (!(comp instanceof CompItem)) fail("Open a composition and select one footage or pre-composition layer.");
+        if (comp.selectedLayers.length !== 1) fail("Select exactly one footage or pre-composition layer in the active composition.");
         var layer=comp.selectedLayers[0];
-        if (!(layer instanceof AVLayer) || !layer.source || !(layer.source instanceof FootageItem) ||
-            !(layer.source.mainSource instanceof FileSource) || layer.source.mainSource.isStill)
-            fail("Select one imported movie or image-sequence layer.");
+        var isPrecomp=layer instanceof AVLayer && layer.source instanceof CompItem;
+        var isTrackableFootage=layer instanceof AVLayer && layer.source instanceof FootageItem &&
+            layer.source.mainSource instanceof FileSource && !layer.source.mainSource.isStill;
+        if (!isPrecomp && !isTrackableFootage)
+            fail("Select one imported movie, image-sequence, or pre-composition layer.");
         if (layer.locked) fail("Unlock the footage layer before starting Motion Tracker.");
         app.beginUndoGroup(TITLE + " Motion Tracker");
         try {
@@ -926,7 +928,7 @@
         trackerButton.alignment = ["fill","fill"];
         trackerButton.preferredSize = [145, 36];
         trackerButton.minimumSize = [80, 32];
-        trackerButton.helpTip = "Choose 3D Camera Tracker or Motion Tracker for the selected footage.";
+        trackerButton.helpTip = "Choose 3D Camera Tracker for footage or Motion Tracker for footage and pre-comps.";
         trackerButton.onClick = runTrackerChoice;
         captureButton = topRow.add("button", undefined, "Stamp 3D");
         captureButton.alignment = ["fill","fill"];
