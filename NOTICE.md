@@ -255,3 +255,9 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Keeps Play Proxy as a same-resolution 10 Mbps H.265 MP4 and adds Work Proxy as an Apple ProRes 422 Proxy QuickTime MOV capped at 1080 pixels high without upscaling.
 - Preserves source aspect ratio, validates the resulting codec and dimensions, and assigns the selected proxy immediately.
 - Saves both formats directly beside the original movie, or beside the saved After Effects project for composition proxies, using an uppercase `_PROXY` suffix without overwriting existing files.
+
+# Timeline footage proxies in 0.10.1 beta
+
+- Allows Generate Proxy to target one imported movie footage layer selected in the active timeline.
+- Resolves the layer to its shared source Footage item, saves the chosen proxy beside the original media and enables it through After Effects' native proxy assignment.
+- Preserves the existing Project-panel selection workflow as the fallback when no valid timeline footage is selected.

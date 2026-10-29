@@ -1,10 +1,10 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync(__dirname+'/VFX_ToolBox.jsx','utf8');
-const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,verifyPSD:verifyPSD,renderPNG:renderPNG,savePNGDirect:savePNGDirect,selectPNGOutput:selectPNGOutput,selectPhotoshop32Output:selectPhotoshop32Output,selectQuickTimeIntermediate:selectQuickTimeIntermediate,safeName:safeName,shellQuote:shellQuote,nextPlateFile:nextPlateFile,nextProxyFile:nextProxyFile,nextVersionFile:nextVersionFile,nextTrackerName:nextTrackerName,reloadImportedAssets:reloadImportedAssets};');
+const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,verifyPSD:verifyPSD,renderPNG:renderPNG,savePNGDirect:savePNGDirect,selectPNGOutput:selectPNGOutput,selectPhotoshop32Output:selectPhotoshop32Output,selectQuickTimeIntermediate:selectQuickTimeIntermediate,safeName:safeName,shellQuote:shellQuote,nextPlateFile:nextPlateFile,nextProxyFile:nextProxyFile,nextVersionFile:nextVersionFile,nextTrackerName:nextTrackerName,timelineProxyTarget:timelineProxyTarget,reloadImportedAssets:reloadImportedAssets};');
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.0 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.1 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -184,6 +184,19 @@ test('Work Proxy uses ProRes Proxy MOV and scales proportionally to at most 1080
  assert(/expectedWidth/.test(source) && /expectedHeight/.test(source));
  assert(/"Play Proxy"/.test(source) && /"Work Proxy"/.test(source));
  assert(/dialog\.defaultElement=play/.test(source));
+});
+test('Generate Proxy accepts one movie footage layer selected in the timeline',()=>{
+ const footage=new FootageItem();footage.mainSource=new FileSource();footage.mainSource.isStill=false;
+ const layer={source:footage};Object.setPrototypeOf(layer,{constructor:{name:'AVLayer'}});
+ // Runtime type validation is covered statically because AVLayer is host-provided.
+ const body=source.slice(source.indexOf('function timelineProxyTarget('),source.indexOf('function selectedProxyTarget('));
+ assert(/comp\.selectedLayers\.length!==1/.test(body));
+ assert(/layer\.source instanceof FootageItem/.test(body));
+ assert(/layer\.source\.mainSource instanceof FileSource/.test(body));
+ assert(/return layer\.source/.test(body));
+ assert(/var target=selectedProxyTarget\(\)/.test(source));
+ assert(/item\.setProxy\(proxyFile\)/.test(source));
+ assert(/item\.useProxy = true/.test(source));
 });
 test('Generate Proxy supports comps through a disposable full-resolution intermediate',()=>{
  assert(/target instanceof CompItem/.test(source));

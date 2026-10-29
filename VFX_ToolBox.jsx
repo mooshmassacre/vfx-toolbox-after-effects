@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.10.0 beta (2026-10-29)
+ * VFX ToolBox — 0.10.1 beta (2026-10-29)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.10.0 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.10.1 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false;
 
@@ -852,6 +852,25 @@
         dialog.show();
         return choice;
     }
+    function timelineProxyTarget() {
+        var comp=app.project.activeItem;
+        if(!(comp instanceof CompItem) || comp.selectedLayers.length!==1) return null;
+        var layer=comp.selectedLayers[0];
+        if(!(layer instanceof AVLayer) || !(layer.source instanceof FootageItem) ||
+            !(layer.source.mainSource instanceof FileSource) || layer.source.mainSource.isStill)
+            return null;
+        return layer.source;
+    }
+    function selectedProxyTarget() {
+        var timelineTarget=timelineProxyTarget();
+        if(timelineTarget) return timelineTarget;
+        var selected=app.project.selection;
+        var target=selected.length===1 ? selected[0] : null;
+        var movie=target instanceof FootageItem && target.mainSource instanceof FileSource;
+        if(!target || (!movie && !(target instanceof CompItem)))
+            fail("Select one imported movie or composition in the Project panel, or one movie footage layer in the timeline.");
+        return target;
+    }
     function beginAction(button) {
         if (busy) return;
         busy = true; activeButton = button;
@@ -901,11 +920,7 @@
             if (!choice || !beginAction(proxyButton)) return;
             if (app.preferences.getPrefAsLong("Main Pref Section", "Pref_SCRIPTING_FILE_NETWORK_SECURITY") !== 1)
                 fail("Enable Allow Scripts to Write Files and Access Network in Preferences > Scripting & Expressions.");
-            var selected = app.project.selection;
-            var target=selected.length===1 ? selected[0] : null;
-            var movie=target instanceof FootageItem && target.mainSource instanceof FileSource;
-            if (!target || (!movie && !(target instanceof CompItem)))
-                fail("Select exactly one imported movie or composition in the Project panel.");
+            var target=selectedProxyTarget();
             if (target instanceof CompItem && !confirm(
                 "Generate proxy for this composition?", false, TITLE)) return;
             var folder = proxiesFolder(target);
