@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.11.0 beta (2026-10-29)
+ * VFX ToolBox — 0.11.1 beta (2026-10-29)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.11.0 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.1 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
@@ -767,6 +767,48 @@
             } catch(stateError) {}
         }
     }
+    function layerCaptureRect(layer, time) {
+        var masks=layer.property("ADBE Mask Parade"),found=false,usableMasks=0,quadVertices=null;
+        var minX=Number.POSITIVE_INFINITY,minY=Number.POSITIVE_INFINITY;
+        var maxX=Number.NEGATIVE_INFINITY,maxY=Number.NEGATIVE_INFINITY;
+        if(masks) {
+            for(var i=1;i<=masks.numProperties;i++) {
+                var mask=masks.property(i),shapeProperty=mask.property("ADBE Mask Shape");
+                if(!shapeProperty) continue;
+                try {
+                    if(typeof MaskMode!=="undefined" &&
+                        (mask.maskMode===MaskMode.NONE || mask.maskMode===MaskMode.SUBTRACT)) continue;
+                } catch(maskModeError) {}
+                var shape=shapeProperty.valueAtTime(time,false),vertices=shape?shape.vertices:null;
+                if(!vertices || !vertices.length) continue;
+                usableMasks++;
+                quadVertices=usableMasks===1 && vertices.length===4 ? vertices : null;
+                for(var v=0;v<vertices.length;v++) {
+                    var px=vertices[v][0],py=vertices[v][1];
+                    if(!isFinite(px) || !isFinite(py)) continue;
+                    minX=Math.min(minX,px);minY=Math.min(minY,py);
+                    maxX=Math.max(maxX,px);maxY=Math.max(maxY,py);found=true;
+                }
+            }
+        }
+        if(found && maxX>minX && maxY>minY) {
+            var result={left:minX,top:minY,width:maxX-minX,height:maxY-minY,fromMasks:true};
+            if(usableMasks===1 && quadVertices && quadVertices.length===4) {
+                var tl=quadVertices[0],tr=quadVertices[0],bl=quadVertices[0],br=quadVertices[0];
+                for(var q=1;q<quadVertices.length;q++) {
+                    var point=quadVertices[q];
+                    if(point[0]+point[1]<tl[0]+tl[1]) tl=point;
+                    if(point[0]-point[1]>tr[0]-tr[1]) tr=point;
+                    if(point[0]-point[1]<bl[0]-bl[1]) bl=point;
+                    if(point[0]+point[1]>br[0]+br[1]) br=point;
+                }
+                result.corners=[[tl[0],tl[1]],[tr[0],tr[1]],[bl[0],bl[1]],[br[0],br[1]]];
+            }
+            return result;
+        }
+        var rect=layer.sourceRectAtTime(time,false);
+        return {left:rect.left,top:rect.top,width:rect.width,height:rect.height,fromMasks:false};
+    }
     function createUnstretchSetup(context, target) {
         var comp=context.comp,layer=null,source=null;
         try {
@@ -779,10 +821,10 @@
             effects.property(1).name="Unstretch Target";
             effects.property(1).property(1).setValue(target.index);
             effects.addProperty("CC Power Pin");
-            var pin=effects.property(2),rect=target.sourceRectAtTime(context.time,false);
+            var pin=effects.property(2),rect=layerCaptureRect(target,context.time);
             if(!(rect.width>0 && rect.height>0)) fail("The selected layer has no visible bounds at the current frame.");
             var x=rect.left,y=rect.top,w=rect.width,h=rect.height;
-            var local=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]],projected=[];
+            var local=rect.corners||[[x,y],[x+w,y],[x,y+h],[x+w,y+h]],projected=[];
             for(var i=0;i<4;i++) {
                 pin.property(i+1).expression='var p=effect("Unstretch Target")(1).toComp(['+
                     local[i][0]+','+local[i][1]+',0]); [p[0],p[1]];';

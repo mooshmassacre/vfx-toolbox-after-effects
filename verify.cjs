@@ -1,10 +1,10 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync(__dirname+'/VFX_ToolBox.jsx','utf8');
-const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,verifyPSD:verifyPSD,renderPNG:renderPNG,savePNGDirect:savePNGDirect,selectPNGOutput:selectPNGOutput,selectPhotoshop32Output:selectPhotoshop32Output,selectQuickTimeIntermediate:selectQuickTimeIntermediate,safeName:safeName,shellQuote:shellQuote,nextPlateFile:nextPlateFile,nextProxyFile:nextProxyFile,nextVersionFile:nextVersionFile,nextTrackerName:nextTrackerName,timelineProxyTarget:timelineProxyTarget,reloadImportedAssets:reloadImportedAssets};');
+const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,verifyPSD:verifyPSD,renderPNG:renderPNG,savePNGDirect:savePNGDirect,selectPNGOutput:selectPNGOutput,selectPhotoshop32Output:selectPhotoshop32Output,selectQuickTimeIntermediate:selectQuickTimeIntermediate,safeName:safeName,shellQuote:shellQuote,nextPlateFile:nextPlateFile,nextProxyFile:nextProxyFile,nextVersionFile:nextVersionFile,nextTrackerName:nextTrackerName,timelineProxyTarget:timelineProxyTarget,layerCaptureRect:layerCaptureRect,reloadImportedAssets:reloadImportedAssets};');
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.0 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.1 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -143,6 +143,16 @@ test('Save Unstretched restores the original quadrilateral with Corner Pin',()=>
  assert(/cornerPin\.property\(i\+1\)\.setValue\(setup\.corners\[i\]\)/.test(source));
  assert(/saveLayerPNG\(context,folder,selectedPlateLayer\(context,false\),true\)/.test(source));
  assert(/restoreLayerStates\(states\|\|\[\]\)/.test(source));
+});
+test('Save Unstretched uses current mask bounds instead of full layer bounds',()=>{
+ const shapeProperty={valueAtTime(){return {vertices:[[100,50],[500,50],[500,350],[100,350]]};}};
+ const mask={property(name){return name==='ADBE Mask Shape'?shapeProperty:null;}};
+ const masks={numProperties:1,property(){return mask;}};
+ const layer={property(name){return name==='ADBE Mask Parade'?masks:null;},sourceRectAtTime(){return {left:0,top:0,width:1920,height:1080};}};
+ const rect=sandbox.api.layerCaptureRect(layer,2);
+ assert.deepEqual(JSON.parse(JSON.stringify(rect)),{left:100,top:50,width:400,height:300,fromMasks:true,corners:[[100,50],[500,50],[100,350],[500,350]]});
+ assert(/layerCaptureRect\(target,context\.time\)/.test(source));
+ assert(/var local=rect\.corners\|\|/.test(source));
 });
 test('Stamp 3D directly captures its temporary PNG and converts it to PSD',()=>{
  assert(/file = uniqueFile\(folder, layer\.name, "psd"\)/.test(source));

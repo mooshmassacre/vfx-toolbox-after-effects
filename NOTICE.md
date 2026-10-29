@@ -280,3 +280,10 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Saves one selected masked layer as an isolated full-composition RGBA PNG while preserving its current transforms, masks and transparent background.
 - Adds Save Unstretched, which expands the selected layer's current quadrilateral to the composition bounds for capture, then imports the PNG with native Corner Pin points set to the original four corners.
 - Restores layer visibility, Solo and selection states after temporary isolation and keeps sequential Plate numbering shared across PSD and PNG outputs.
+
+# Mask-bound Unstretched capture in 0.11.1 beta
+
+- Calculates the current bounding rectangle from active mask-path vertices instead of using the complete source-layer rectangle.
+- Maps the cropped object's four mask-bound corners to the composition edges for the saved PNG.
+- Reuses the same original composition-space corners in the imported layer's Corner Pin so the stretched Plate returns to its captured placement.
+- Uses the actual vertices of a single four-point mask; irregular and multi-mask cuts fall back to their combined vertex bounds.

@@ -1,6 +1,6 @@
 # VFX ToolBox
 
-**0.11.0 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.11.1 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
 VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
@@ -39,7 +39,7 @@ Every panel button displays a concise tooltip after the pointer rests over it. T
 
 **Save Plate** retains the existing full-composition workflow when no single masked visual layer is selected. It creates `Plate_01.psd`, `Plate_02.psd`, and so on. If exactly one visible layer with one or more masks is selected, Save Plate isolates that layer, preserves its current transforms and masks, hides other visual layers only for the capture, and writes a full-composition RGBA PNG with a transparent background. Visibility, Solo and selection states are restored immediately afterward.
 
-**Save Unstretched** requires exactly one visible visual layer. It uses the selected layer's current four composition-space corners to stretch its visible result across the full composition frame, preserving masks and transparency in a composition-sized RGBA PNG. After import, VFX ToolBox applies the native Corner Pin effect with the original four corner positions, returning the still to the same on-screen placement and perspective it had at the captured frame.
+**Save Unstretched** requires exactly one visible visual layer. A four-point mask uses its actual current vertices, including rotation and perspective. Organic or multi-mask cuts use their combined current vertex bounds rather than the full source-layer rectangle. Those cropped-object corners are projected into composition space and expanded to the four composition edges, producing a composition-sized RGBA PNG in which the cut object is visibly stretched corner to corner. After import, VFX ToolBox applies the native Corner Pin effect with those same four original composition-space corners, desstretching the still back to its captured placement and perspective. Layers without masks fall back to their source rectangle.
 
 At 8/16 bpc, Save Frame writes a temporary full-resolution PNG through After Effects' direct frame API, validates it, and converts it headlessly to PSD with the native macOS ImageIO converter. It does not touch the Render Queue or open Photoshop. The temporary PNG is removed after conversion.
 
