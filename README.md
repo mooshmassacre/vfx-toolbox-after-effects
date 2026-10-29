@@ -1,6 +1,6 @@
 # VFX ToolBox
 
-**0.10.3 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.11.0 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
 VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
@@ -12,7 +12,7 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 4. Select one unlocked 3D visual layer. Keep all corners inside the frame and disable every Solo switch.
 5. To start tracking, select exactly one layer in the active composition and click **Tracker**. 3D Camera Tracker accepts imported movies and image sequences; Motion Tracker also accepts pre-composition layers.
 6. To create a proxy, select exactly one imported movie, composition or pre-composition in the Project panel, or select one movie footage layer in the active timeline. Click **Generate Proxy**, then choose **Play Proxy - Same Res | H265** or **Work Proxy - Low Res | QTProxy**.
-7. Click **Stamp 3D** to create a projected texture, or **Save Frame** to save the complete composition frame at the playhead.
+7. Click **Stamp 3D** to create a projected texture. Click **Save Frame**, then choose Save Plate or Save Unstretched.
 8. Click **Reload Textures** to force every file-based imported asset in the project to reload from disk.
 
 **Versioning** saves the open project beside its current file as `Project_V01.aep`, `Project_V02.aep`, and so on. It scans the folder for the highest existing version, never replaces an earlier file and leaves the newly saved version open as the active After Effects project. For an unsaved project, the first click opens After Effects' native Save As dialog and keeps the chosen initial project open; numbered versions begin on subsequent clicks. Cancelling the dialog creates nothing.
@@ -35,7 +35,11 @@ Every panel button displays a concise tooltip after the pointer rests over it. T
 
 **Reload Textures** reloads the main source of every file-based Footage item, including still images, image sequences, video and audio. Solids and generated sources are ignored. The current Project panel selection is preserved, and failures are reported by asset name.
 
-**Save Frame** creates a **Plates** folder beside the saved `.aep` project and writes `Plate_01.psd`, `Plate_02.psd`, and so on. It reads the highest existing Plate number across earlier PNG, TIFF and PSD Plates and always increments it, so it never replaces a file. The PSD is imported as flattened footage into a top-level **Plates** folder in the Project panel, then inserted as a selected layer in the active composition with its start and in point at the capture playhead. The project must be saved first so its disk root is known.
+**Save Frame** opens a two-option chooser. Both workflows create a **Plates** folder beside the saved `.aep` project, import their result into a top-level **Plates** folder in the Project panel and insert the new still at the capture playhead. Plate numbering is shared across PNG, TIFF and PSD outputs and always increments, so existing files are never replaced. The project must be saved first so its disk root is known.
+
+**Save Plate** retains the existing full-composition workflow when no single masked visual layer is selected. It creates `Plate_01.psd`, `Plate_02.psd`, and so on. If exactly one visible layer with one or more masks is selected, Save Plate isolates that layer, preserves its current transforms and masks, hides other visual layers only for the capture, and writes a full-composition RGBA PNG with a transparent background. Visibility, Solo and selection states are restored immediately afterward.
+
+**Save Unstretched** requires exactly one visible visual layer. It uses the selected layer's current four composition-space corners to stretch its visible result across the full composition frame, preserving masks and transparency in a composition-sized RGBA PNG. After import, VFX ToolBox applies the native Corner Pin effect with the original four corner positions, returning the still to the same on-screen placement and perspective it had at the captured frame.
 
 At 8/16 bpc, Save Frame writes a temporary full-resolution PNG through After Effects' direct frame API, validates it, and converts it headlessly to PSD with the native macOS ImageIO converter. It does not touch the Render Queue or open Photoshop. The temporary PNG is removed after conversion.
 
@@ -45,7 +49,8 @@ The direct After Effects PNG method does not embed an ICC profile, so its conver
 
 ## Precision and color
 
-- Save Frame produces a flattened PSD matching the project's 8, 16 or 32 bits per channel.
+- Full-composition Save Plate produces a flattened PSD matching the project's 8, 16 or 32 bits per channel.
+- Masked Save Plate and Save Unstretched produce transparent, full-composition PNG Plates at 8 or 16 bits per channel. PNG workflows are unavailable in 32-bpc projects.
 - The native macOS converter was verified to retain both 8-bpc and 16-bpc PNG depth in the PSD header.
 - Stamp 3D remains limited to 8/16 bpc and uses After Effects' direct PNG frame API before converting the validated PNG to PSD.
 - Before importing, VFX ToolBox checks PSD signature, dimensions, RGB/RGBA mode, channel depth and ICC-resource presence. Direct Stamp 3D and Save Frame results are normally untagged, so VFX ToolBox records the project working-space name in their footage comments.
@@ -56,7 +61,7 @@ The direct After Effects PNG method does not embed an ICC profile, so its conver
 - Each result is one static rendered image, not a layered file.
 - Adobe Color Managed / ICC projects are supported. OCIO/ACES is currently blocked.
 - The original plane remains hidden in the composition and must be kept because it is the texture's transform parent.
-- Transform animation and parent chains are followed; animated content, masks, opacity and deformation are not reproduced.
+- Stamp 3D follows transform animation and parent chains; animated content, masks, opacity and deformation are not reproduced by that workflow. Save Plate and Save Unstretched capture masks at the selected frame.
 - The captured region can include foreground objects visible in the chosen frame.
 - Non-square pixels, collapsed transformations, nonzero anchor Z and active Solo switches are rejected.
 - Direct frame capture and conversion are synchronous and may briefly block the interface.

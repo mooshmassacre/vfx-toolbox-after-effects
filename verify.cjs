@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.3 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.0 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -118,6 +118,31 @@ test('Save Frame creates PSD Plates without Photoshop',()=>{
  assert(/\/usr\/bin\/sips/.test(source));
  assert(!/BridgeTalk/.test(source));
  assert(/saveButton\.onClick = runSave/.test(source));
+});
+test('Save Frame offers Save Plate and Save Unstretched choices',()=>{
+ assert(/function chooseSaveMode\(\)/.test(source));
+ assert(/"Save Plate"/.test(source));
+ assert(/"Save Unstretched"/.test(source));
+ assert(/dialog\.defaultElement=plate/.test(source));
+ assert(/var choice=chooseSaveMode\(\)/.test(source));
+});
+test('Save Plate isolates selected masked layers as transparent PNG',()=>{
+ assert(/layer\.property\("ADBE Mask Parade"\)/.test(source));
+ assert(/nextPlateFile\(folder,"png"\)/.test(source));
+ assert(/isolateLayerForCapture\(context\.comp,target/.test(source));
+ assert(/savePNGDirect\(context,file\)/.test(source));
+ assert(/pngInfo\.colorType!==6/.test(source));
+ assert(/unstretched\?"Unstretched":"Masked"/.test(source));
+ assert(/" PNG Plate \| Source: "/.test(source));
+ assert(/if\(maskedLayer\) saveLayerPNG\(context,folder,maskedLayer,false\)/.test(source));
+});
+test('Save Unstretched restores the original quadrilateral with Corner Pin',()=>{
+ assert(/effects\.addProperty\("CC Power Pin"\)/.test(source));
+ assert(/pin\.property\(6\)\.setValue\(true\)/.test(source));
+ assert(/addProperty\("ADBE Corner Pin"\)/.test(source));
+ assert(/cornerPin\.property\(i\+1\)\.setValue\(setup\.corners\[i\]\)/.test(source));
+ assert(/saveLayerPNG\(context,folder,selectedPlateLayer\(context,false\),true\)/.test(source));
+ assert(/restoreLayerStates\(states\|\|\[\]\)/.test(source));
 });
 test('Stamp 3D directly captures its temporary PNG and converts it to PSD',()=>{
  assert(/file = uniqueFile\(folder, layer\.name, "psd"\)/.test(source));

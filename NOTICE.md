@@ -272,3 +272,11 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 
 - Renames the chooser actions to `Play Proxy - Same Res | H265` and `Work Proxy - Low Res | QTProxy`.
 - Keeps the existing codecs, resolution rules, output naming and import behavior unchanged.
+
+# Masked and unstretched Plates in 0.11.0 beta
+
+- Changes Save Frame into a chooser with Save Plate and Save Unstretched actions.
+- Keeps the existing full-composition PSD workflow when no masked visual layer is selected.
+- Saves one selected masked layer as an isolated full-composition RGBA PNG while preserving its current transforms, masks and transparent background.
+- Adds Save Unstretched, which expands the selected layer's current quadrilateral to the composition bounds for capture, then imports the PNG with native Corner Pin points set to the original four corners.
+- Restores layer visibility, Solo and selection states after temporary isolation and keeps sequential Plate numbering shared across PSD and PNG outputs.

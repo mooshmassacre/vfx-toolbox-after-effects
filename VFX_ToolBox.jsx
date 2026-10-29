@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.10.3 beta (2026-10-29)
+ * VFX ToolBox — 0.11.0 beta (2026-10-29)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,9 +7,9 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.10.3 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.0 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
-    var busy = false, trackerMenuOpen = false, proxyMenuOpen = false;
+    var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
     function fail(message) { throw new Error(message); }
     function message(text) {
@@ -277,7 +277,7 @@
             if(width!==context.comp.width || height!==context.comp.height) fail("The output changed the frame dimensions.");
             if(colorType!==2 && colorType!==6) fail("The PNG must use RGB or RGBA color type.");
             if(!sawICC && requireICC) fail("The PNG has no embedded ICC profile. Enable Embed Profile in the PNG output template.");
-            return {embeddedICC:sawICC};
+            return {embeddedICC:sawICC, colorType:colorType};
         } finally { file.close(); }
     }
     // PSD parsing checks the flattened file header and scans image resources for ICC metadata.
@@ -727,6 +727,130 @@
         if (warnings.length) alert(warnings.join("\n"), TITLE);
         return file;
     }
+    function selectedPlateLayer(context, masksOnly) {
+        var selected=context.comp.selectedLayers;
+        if(selected.length!==1) {
+            if(masksOnly) return null;
+            fail("Select exactly one visual layer before using Save Unstretched.");
+        }
+        var layer=selected[0];
+        if(!(layer instanceof AVLayer) || layer.nullLayer || layer.adjustmentLayer) {
+            if(masksOnly) return null;
+            fail("Select one visual footage, pre-composition, text, or shape layer.");
+        }
+        var masks=layer.property("ADBE Mask Parade");
+        if(masksOnly && (!masks || masks.numProperties<1)) return null;
+        if(context.time<layer.inPoint || context.time>=layer.outPoint || !layer.enabled)
+            fail("The selected layer must be visible at the current playhead time.");
+        if(context.depth===32)
+            fail("Transparent PNG Plates require an 8-bpc or 16-bpc project.");
+        return layer;
+    }
+    function isolateLayerForCapture(comp, target, keepLayer) {
+        var states=[],matte=null;
+        try { if(target.hasTrackMatte) matte=target.trackMatteLayer; } catch(matteError) {}
+        for(var i=1;i<=comp.numLayers;i++) {
+            var layer=comp.layer(i);
+            states.push({layer:layer,enabled:layer.enabled,solo:layer.solo,selected:layer.selected});
+            layer.solo=false;
+            if(layer instanceof AVLayer && layer!==target && layer!==keepLayer && layer!==matte) layer.enabled=false;
+        }
+        target.enabled=true;
+        return states;
+    }
+    function restoreLayerStates(states) {
+        for(var i=0;i<states.length;i++) {
+            try {
+                states[i].layer.enabled=states[i].enabled;
+                states[i].layer.solo=states[i].solo;
+                states[i].layer.selected=states[i].selected;
+            } catch(stateError) {}
+        }
+    }
+    function createUnstretchSetup(context, target) {
+        var comp=context.comp,layer=null,source=null;
+        try {
+            layer=comp.layers.addSolid([1,1,1],"__VFX_ToolBox_Unstretch",comp.width,comp.height,1,comp.duration);
+            source=layer.source;
+            layer.adjustmentLayer=true;
+            layer.moveToBeginning();
+            var effects=layer.property("ADBE Effect Parade");
+            effects.addProperty("ADBE Layer Control");
+            effects.property(1).name="Unstretch Target";
+            effects.property(1).property(1).setValue(target.index);
+            effects.addProperty("CC Power Pin");
+            var pin=effects.property(2),rect=target.sourceRectAtTime(context.time,false);
+            if(!(rect.width>0 && rect.height>0)) fail("The selected layer has no visible bounds at the current frame.");
+            var x=rect.left,y=rect.top,w=rect.width,h=rect.height;
+            var local=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]],projected=[];
+            for(var i=0;i<4;i++) {
+                pin.property(i+1).expression='var p=effect("Unstretch Target")(1).toComp(['+
+                    local[i][0]+','+local[i][1]+',0]); [p[0],p[1]];';
+                projected[i]=pin.property(i+1).valueAtTime(context.time,false);
+                if(pin.property(i+1).expressionError) fail(pin.property(i+1).expressionError);
+                if(!isFinite(projected[i][0]) || !isFinite(projected[i][1]))
+                    fail("Could not project the selected layer corners.");
+            }
+            var order=[0,1,3,2],area=0;
+            for(i=0;i<4;i++) {
+                var a=projected[order[i]],b=projected[order[(i+1)%4]];
+                area+=a[0]*b[1]-b[0]*a[1];
+            }
+            if(Math.abs(area)<2) fail("The selected layer is edge-on or too small in this frame.");
+            pin.property(6).setValue(true);
+            return {layer:layer,source:source,corners:projected};
+        } catch(error) {
+            try { if(layer) layer.remove(); } catch(layerCleanupError) {}
+            try { if(source) source.remove(); } catch(sourceCleanupError) {}
+            throw error;
+        }
+    }
+    function saveLayerPNG(context, folder, target, unstretched) {
+        var file=nextPlateFile(folder,"png"),setup=null,states=null,footage=null,result=null;
+        var group=false,success=false,error=null,warnings=[];
+        try {
+            app.beginUndoGroup(TITLE+(unstretched ? " Save Unstretched" : " Save Masked Plate"));group=true;
+            if(unstretched) setup=createUnstretchSetup(context,target);
+            states=isolateLayerForCapture(context.comp,target,setup?setup.layer:null);
+            message(unstretched ? "Unstretching…" : "Saving PNG…");
+            savePNGDirect(context,file);
+            var pngInfo=verifyPNG(file,context,false);
+            if(pngInfo.colorType!==6) fail("The transparent Plate was not saved with an alpha channel.");
+            message("Importing Plate…");
+            footage=waitForImport(file,15000);
+            footage.parentFolder=projectPlatesFolder();
+            footage.comment=TITLE+" "+VERSION+" | "+(unstretched?"Unstretched":"Masked")+
+                " PNG Plate | Source: "+target.name+" | Captured at: "+context.time+"s";
+            result=context.comp.layers.add(footage);
+            result.name=target.name+(unstretched?" · Unstretched Plate":" · Masked Plate");
+            result.startTime=context.time;
+            result.inPoint=context.time;
+            result.comment=footage.comment;
+            if(unstretched) {
+                var cornerPin=result.property("ADBE Effect Parade").addProperty("ADBE Corner Pin");
+                for(var i=0;i<4;i++) cornerPin.property(i+1).setValue(setup.corners[i]);
+            }
+            success=true;
+        } catch(e) { error=e; }
+        finally {
+            restoreLayerStates(states||[]);
+            if(setup) {
+                removeSafely(setup.layer,warnings);
+                removeSafely(setup.source,warnings);
+            }
+            if(!success) {
+                removeSafely(result,warnings);
+                removeSafely(footage,warnings);
+                if(file.exists && !file.remove()) warnings.push("Remaining PNG file: "+file.fsName);
+            }
+            if(group) app.endUndoGroup();
+        }
+        if(error) fail((error.message||error.toString())+(warnings.length?"\n\n"+warnings.join("\n"):""));
+        for(var s=1;s<=context.comp.numLayers;s++) context.comp.layer(s).selected=false;
+        result.selected=true;
+        if(warnings.length) alert(warnings.join("\n"),TITLE);
+        return file;
+    }
     function saveFrame(context, folder) {
         var isFloat = context.depth === 32;
         var file = nextPlateFile(folder,"psd"), footage = null, plateLayer = null;
@@ -871,6 +995,29 @@
         dialog.show();
         return choice;
     }
+    function chooseSaveMode() {
+        var dialog=new Window("dialog","Save Frame");
+        dialog.orientation="column";
+        dialog.alignChildren=["fill","fill"];
+        dialog.spacing=8;
+        dialog.margins=12;
+        dialog.add("statictext",undefined,"Choose a frame workflow:");
+        var plate=dialog.add("button",undefined,"Save Plate");
+        var unstretched=dialog.add("button",undefined,"Save Unstretched");
+        var cancel=dialog.add("button",undefined,"Cancel",{name:"cancel"});
+        plate.helpTip="Save the full frame as PSD, or isolate one selected masked layer as transparent PNG.";
+        unstretched.helpTip="Unstretch one selected layer to the composition frame and reapply its original corners with Corner Pin.";
+        cancel.helpTip="Close without saving a frame.";
+        var choice=null;
+        plate.onClick=function(){choice="plate";dialog.close(1);};
+        unstretched.onClick=function(){choice="unstretched";dialog.close(1);};
+        cancel.onClick=function(){dialog.close(0);};
+        dialog.defaultElement=plate;
+        dialog.cancelElement=cancel;
+        dialog.center();
+        dialog.show();
+        return choice;
+    }
     function timelineProxyTarget() {
         var comp=app.project.activeItem;
         if(!(comp instanceof CompItem) || comp.selectedLayers.length!==1) return null;
@@ -954,15 +1101,27 @@
         }
     }
     function runSave() {
-        if (!beginAction(saveButton)) return;
+        if(busy || saveMenuOpen) return;
+        saveMenuOpen=true;
         try {
+            var choice=chooseSaveMode();
+            if(!choice || !beginAction(saveButton)) return;
             if (app.preferences.getPrefAsLong("Main Pref Section", "Pref_SCRIPTING_FILE_NETWORK_SECURITY") !== 1)
                 fail("Enable Allow Scripts to Write Files and Access Network in Preferences > Scripting & Expressions.");
             var context = validateFrame(app.project.activeItem), folder = platesFolder();
             if (!folder.exists && !folder.create()) fail("Could not create the output folder: " + folder.fsName);
-            saveFrame(context, folder);
+            if(choice==="unstretched") {
+                saveLayerPNG(context,folder,selectedPlateLayer(context,false),true);
+            } else {
+                var maskedLayer=selectedPlateLayer(context,true);
+                if(maskedLayer) saveLayerPNG(context,folder,maskedLayer,false);
+                else saveFrame(context,folder);
+            }
         } catch (e) { alert(e.message || e.toString(), TITLE); }
-        finally { endAction(); }
+        finally {
+            saveMenuOpen=false;
+            if(busy) endAction();
+        }
     }
     function runReload() {
         if (!beginAction(reloadButton)) return;
@@ -1028,7 +1187,7 @@
         saveButton.alignment = ["fill","fill"];
         saveButton.preferredSize = [145, 36];
         saveButton.minimumSize = [80, 32];
-        saveButton.helpTip = "Save the current frame as a PSD Plate and add it at the playhead.";
+        saveButton.helpTip = "Choose Save Plate or Save Unstretched for the current frame.";
         saveButton.onClick = runSave;
         versioningButton = bottomRow.add("button", undefined, "Versioning");
         versioningButton.alignment = ["fill","fill"];
