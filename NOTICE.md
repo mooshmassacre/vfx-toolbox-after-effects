@@ -261,3 +261,9 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Allows Generate Proxy to target one imported movie footage layer selected in the active timeline.
 - Resolves the layer to its shared source Footage item, saves the chosen proxy beside the original media and enables it through After Effects' native proxy assignment.
 - Preserves the existing Project-panel selection workflow as the fallback when no valid timeline footage is selected.
+
+# Visible proxy imports in 0.10.2 beta
+
+- Imports every generated Play Proxy and Work Proxy as visible footage in a top-level Project-panel folder named `Proxies`.
+- Keeps the imported proxy file assigned and enabled on the original source item through After Effects' native proxy API.
+- Removes a partial Project-panel import if proxy assignment fails.

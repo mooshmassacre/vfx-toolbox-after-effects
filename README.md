@@ -1,6 +1,6 @@
 # VFX ToolBox
 
-**0.10.1 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.10.2 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
 VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
@@ -21,7 +21,7 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 
 **Generate Proxy** opens a two-option chooser. **Play Proxy** creates a same-resolution H.265/HEVC MP4 at a 10 Mbps target video bitrate with AAC audio. **Work Proxy** creates an editing-friendly QuickTime MOV using Apple ProRes 422 Proxy with PCM audio; it never upscales, limits height to 1080 pixels and preserves the source aspect ratio.
 
-Both proxy types are immediately associated with the source `FootageItem` through After Effects' native proxy API and enabled on the selected item. A movie layer selected in the timeline resolves to its imported source item, so the generated proxy is available throughout the project wherever that footage is used. Imported-movie proxies are saved directly beside the original source file. Composition and pre-composition proxies are saved directly beside the `.aep` project. The first filenames are `Original_PROXY.mp4` and `Original_PROXY.mov`; repeated exports increment as `Original_PROXY_02`, `Original_PROXY_03`, and so on without replacing an earlier proxy. FFmpeg and ffprobe are required; VFX ToolBox detects Homebrew installations on Apple Silicon and Intel Macs.
+Both proxy types are imported as visible footage into a top-level **Proxies** folder in the After Effects Project panel. They are also immediately associated with the source `FootageItem` through After Effects' native proxy API and enabled on the selected item. A movie layer selected in the timeline resolves to its imported source item, so the assigned proxy is available throughout the project wherever that footage is used. Imported-movie proxies are saved directly beside the original source file. Composition and pre-composition proxies are saved directly beside the `.aep` project. The first filenames are `Original_PROXY.mp4` and `Original_PROXY.mov`; repeated exports increment as `Original_PROXY_02`, `Original_PROXY_03`, and so on without replacing an earlier proxy. FFmpeg and ffprobe are required; VFX ToolBox detects Homebrew installations on Apple Silicon and Intel Macs.
 
 Composition proxies use an isolated full-resolution QuickTime intermediate rendered by After Effects with effects, motion blur and frame blending enabled according to the composition. VFX ToolBox preserves the enabled state of existing Render Queue items, excludes existing proxies from the intermediate, removes its temporary queue item, converts the complete composition duration to the chosen proxy type and deletes the intermediate. The project must be saved before generating a composition proxy.
 

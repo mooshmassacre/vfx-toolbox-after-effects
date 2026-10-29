@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.10.1 beta (2026-10-29)
+ * VFX ToolBox — 0.10.2 beta (2026-10-29)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.10.1 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.10.2 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false;
 
@@ -199,6 +199,23 @@
             if (item instanceof FolderItem && item.name === "Assets") return item;
         }
         return app.project.items.addFolder("Assets");
+    }
+    function projectProxiesFolder() {
+        var root = app.project.rootFolder;
+        for (var i = 1; i <= root.numItems; i++) {
+            var item = root.item(i);
+            if (item instanceof FolderItem && item.name === "Proxies") return item;
+        }
+        return app.project.items.addFolder("Proxies");
+    }
+    function importProxyFootage(file, target, mode) {
+        var options=new ImportOptions(file);
+        if(options.canImportAs(ImportAsType.FOOTAGE)) options.importAs=ImportAsType.FOOTAGE;
+        var footage=app.project.importFile(options);
+        footage.parentFolder=projectProxiesFolder();
+        footage.comment=TITLE + " " + VERSION + " | " +
+            (mode === "work" ? "Work Proxy" : "Play Proxy") + " for " + target.name;
+        return footage;
     }
     function nextTrackerName(comp) {
         var highest = 0;
@@ -567,7 +584,7 @@
         }
     }
     function generateProxy(item, folder, mode) {
-        var isComp=item instanceof CompItem, sourceFile=null, intermediate=null;
+        var isComp=item instanceof CompItem, sourceFile=null, intermediate=null, importedProxy=null;
         var ffmpeg = findExecutable("ffmpeg"), ffprobe = findExecutable("ffprobe");
         var extension = mode === "work" ? "mov" : "mp4";
         var proxyFile = nextProxyFile(folder, item.name, extension), encoded = null;
@@ -596,10 +613,12 @@
                 fail("FFmpeg could not generate the " + (mode === "work" ? "Work" : "Play") + " Proxy. " +
                     (encoded ? encoded.output : ""));
             verifyProxy(ffprobe, proxyFile, item, mode);
+            importedProxy=importProxyFootage(proxyFile,item,mode);
             item.setProxy(proxyFile);
             item.useProxy = true;
             return proxyFile;
         } catch (error) {
+            if(importedProxy) { try { importedProxy.remove(); } catch(importCleanupError) {} }
             if (proxyFile.exists) proxyFile.remove();
             throw error;
         } finally {

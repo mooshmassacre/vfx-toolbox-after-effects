@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.1 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.2 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -197,6 +197,17 @@ test('Generate Proxy accepts one movie footage layer selected in the timeline',(
  assert(/var target=selectedProxyTarget\(\)/.test(source));
  assert(/item\.setProxy\(proxyFile\)/.test(source));
  assert(/item\.useProxy = true/.test(source));
+});
+test('Generated proxies are imported into the Project panel Proxies folder',()=>{
+ assert(/function projectProxiesFolder\(\)/.test(source));
+ assert(/item instanceof FolderItem && item\.name === "Proxies"/.test(source));
+ assert(/app\.project\.items\.addFolder\("Proxies"\)/.test(source));
+ assert(/new ImportOptions\(file\)/.test(source));
+ assert(/app\.project\.importFile\(options\)/.test(source));
+ assert(/footage\.parentFolder=projectProxiesFolder\(\)/.test(source));
+ const generateBody=source.slice(source.indexOf('function generateProxy('),source.indexOf('function convertPNGToPSD('));
+ assert(/importedProxy=importProxyFootage\(proxyFile,item,mode\)/.test(generateBody));
+ assert(generateBody.indexOf('importedProxy=importProxyFootage') < generateBody.indexOf('item.setProxy(proxyFile)'));
 });
 test('Generate Proxy supports comps through a disposable full-resolution intermediate',()=>{
  assert(/target instanceof CompItem/.test(source));
