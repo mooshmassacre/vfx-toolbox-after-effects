@@ -1,6 +1,6 @@
 # VFX ToolBox
 
-**0.10.2 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.10.3 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
 VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
@@ -11,7 +11,7 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 3. Open a square-pixel composition at Full resolution with an ICC working color space.
 4. Select one unlocked 3D visual layer. Keep all corners inside the frame and disable every Solo switch.
 5. To start tracking, select exactly one layer in the active composition and click **Tracker**. 3D Camera Tracker accepts imported movies and image sequences; Motion Tracker also accepts pre-composition layers.
-6. To create a proxy, select exactly one imported movie, composition or pre-composition in the Project panel, or select one movie footage layer in the active timeline. Click **Generate Proxy**, then choose Play Proxy or Work Proxy.
+6. To create a proxy, select exactly one imported movie, composition or pre-composition in the Project panel, or select one movie footage layer in the active timeline. Click **Generate Proxy**, then choose **Play Proxy - Same Res | H265** or **Work Proxy - Low Res | QTProxy**.
 7. Click **Stamp 3D** to create a projected texture, or **Save Frame** to save the complete composition frame at the playhead.
 8. Click **Reload Textures** to force every file-based imported asset in the project to reload from disk.
 
@@ -19,7 +19,7 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 
 **Tracker** is a standard clickable button that opens a two-option chooser. **3D Camera Tracker** applies After Effects' native tracker effect to a selected unlocked 2D movie or image-sequence layer and refuses duplicate application. **Motion Tracker** accepts an imported movie, image sequence or pre-composition layer, creates a 2D Null named `TRACKER_01`, `TRACKER_02`, and so on, then invokes After Effects' native Track Motion command for that layer. Its generated Null source is stored in a top-level **Assets** folder in the Project panel, which VFX ToolBox creates when needed.
 
-**Generate Proxy** opens a two-option chooser. **Play Proxy** creates a same-resolution H.265/HEVC MP4 at a 10 Mbps target video bitrate with AAC audio. **Work Proxy** creates an editing-friendly QuickTime MOV using Apple ProRes 422 Proxy with PCM audio; it never upscales, limits height to 1080 pixels and preserves the source aspect ratio.
+**Generate Proxy** opens a two-option chooser. **Play Proxy - Same Res | H265** creates a same-resolution H.265/HEVC MP4 at a 10 Mbps target video bitrate with AAC audio. **Work Proxy - Low Res | QTProxy** creates an editing-friendly QuickTime MOV using Apple ProRes 422 Proxy with PCM audio; it never upscales, limits height to 1080 pixels and preserves the source aspect ratio.
 
 Both proxy types are imported as visible footage into a top-level **Proxies** folder in the After Effects Project panel. They are also immediately associated with the source `FootageItem` through After Effects' native proxy API and enabled on the selected item. A movie layer selected in the timeline resolves to its imported source item, so the assigned proxy is available throughout the project wherever that footage is used. Imported-movie proxies are saved directly beside the original source file. Composition and pre-composition proxies are saved directly beside the `.aep` project. The first filenames are `Original_PROXY.mp4` and `Original_PROXY.mov`; repeated exports increment as `Original_PROXY_02`, `Original_PROXY_03`, and so on without replacing an earlier proxy. FFmpeg and ffprobe are required; VFX ToolBox detects Homebrew installations on Apple Silicon and Intel Macs.
 

@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.10.2 beta (2026-10-29)
+ * VFX ToolBox — 0.10.3 beta (2026-10-29)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.10.2 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.10.3 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false;
 
@@ -855,8 +855,8 @@
         dialog.spacing=8;
         dialog.margins=12;
         dialog.add("statictext", undefined, "Choose a proxy:");
-        var play=dialog.add("button", undefined, "Play Proxy");
-        var work=dialog.add("button", undefined, "Work Proxy");
+        var play=dialog.add("button", undefined, "Play Proxy - Same Res | H265");
+        var work=dialog.add("button", undefined, "Work Proxy - Low Res | QTProxy");
         var cancel=dialog.add("button", undefined, "Cancel", {name:"cancel"});
         play.helpTip="Create a same-resolution H.265 MP4 proxy at 10 Mbps.";
         work.helpTip="Create an Apple ProRes Proxy MOV with a maximum height of 1080 pixels.";
@@ -1040,7 +1040,7 @@
         proxyButton.alignment = ["fill","fill"];
         proxyButton.preferredSize = [145, 36];
         proxyButton.minimumSize = [80, 32];
-        proxyButton.helpTip = "Choose a Play Proxy or an editing-friendly Work Proxy.";
+        proxyButton.helpTip = "Choose a same-resolution H265 Play Proxy or a low-resolution QTProxy Work Proxy.";
         proxyButton.onClick = runProxy;
         reloadButton = bottomRow.add("button", undefined, "Reload Textures");
         reloadButton.alignment = ["fill","fill"];

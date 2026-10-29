@@ -267,3 +267,8 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Imports every generated Play Proxy and Work Proxy as visible footage in a top-level Project-panel folder named `Proxies`.
 - Keeps the imported proxy file assigned and enabled on the original source item through After Effects' native proxy API.
 - Removes a partial Project-panel import if proxy assignment fails.
+
+# Descriptive proxy labels in 0.10.3 beta
+
+- Renames the chooser actions to `Play Proxy - Same Res | H265` and `Work Proxy - Low Res | QTProxy`.
+- Keeps the existing codecs, resolution rules, output naming and import behavior unchanged.

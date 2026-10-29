@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.2 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.3 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -182,7 +182,8 @@ test('Work Proxy uses ProRes Proxy MOV and scales proportionally to at most 1080
  assert(/mode === "work" && codec !== "prores"/.test(source));
  assert(/Math\.min\(1, 1080 \/ item\.height\)/.test(source));
  assert(/expectedWidth/.test(source) && /expectedHeight/.test(source));
- assert(/"Play Proxy"/.test(source) && /"Work Proxy"/.test(source));
+ assert(/"Play Proxy - Same Res \| H265"/.test(source));
+ assert(/"Work Proxy - Low Res \| QTProxy"/.test(source));
  assert(/dialog\.defaultElement=play/.test(source));
 });
 test('Generate Proxy accepts one movie footage layer selected in the timeline',()=>{
