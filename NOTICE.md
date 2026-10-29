@@ -248,3 +248,10 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Allows Motion Tracker to start from a selected pre-composition layer as well as imported movies and image sequences.
 - Creates and organizes the same sequential tracker Null for either source type.
 - Keeps 3D Camera Tracker validation limited to supported footage sources.
+
+# Play and Work proxies in 0.10.0 beta
+
+- Changes Generate Proxy into a chooser with Play Proxy and Work Proxy actions.
+- Keeps Play Proxy as a same-resolution 10 Mbps H.265 MP4 and adds Work Proxy as an Apple ProRes 422 Proxy QuickTime MOV capped at 1080 pixels high without upscaling.
+- Preserves source aspect ratio, validates the resulting codec and dimensions, and assigns the selected proxy immediately.
+- Saves both formats directly beside the original movie, or beside the saved After Effects project for composition proxies, using an uppercase `_PROXY` suffix without overwriting existing files.

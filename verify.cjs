@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.9\.10 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.10\.0 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -54,10 +54,12 @@ test('Plate numbering is shared across previous and current formats',()=>{
  const folder={fsName:'/project/Plates',getFiles(){return names.map(n=>new MockFile('/project/Plates/'+n));}};
  assert.equal(sandbox.api.nextPlateFile(folder,'psd').name,'Plate_11.psd');
 });
-test('Proxy numbering increments without replacing earlier MP4 files',()=>{
- const names=['Shot_Proxy_01.mp4','Shot_Proxy_04.MP4','Other_Proxy_20.mp4'];
- const folder={fsName:'/media/Proxys',getFiles(){return names.map(n=>new MockFile('/media/Proxys/'+n));}};
- assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov').name,'Shot_Proxy_05.mp4');
+test('Proxy naming uses the source folder, uppercase suffix and no replacement',()=>{
+ const names=['Shot_PROXY.mp4','Shot_PROXY_04.MP4','Shot_PROXY.mov','Other_PROXY_20.mp4'];
+ const folder={fsName:'/media',getFiles(){return names.map(n=>new MockFile('/media/'+n));}};
+ assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mp4').name,'Shot_PROXY_05.mp4');
+ assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mov').name,'Shot_PROXY_02.mov');
+ assert.equal(sandbox.api.nextProxyFile(folder,'New Shot.mov','mp4').name,'New Shot_PROXY.mp4');
 });
 test('Project versioning increments the highest version and keeps the base name',()=>{
  const names=['Feature.aep','Feature_V01.aep','Feature_V04.aep','Other_V20.aep'];
@@ -162,17 +164,26 @@ test('Interface includes Reload Textures beside the existing actions',()=>{
  assert(/reloadButton\.onClick = runReload/.test(source));
  assert(/reloadButton\.enabled = false/.test(source));
 });
-test('Generate Proxy remains available at same-resolution H.265 10 Mbps',()=>{
+test('Play Proxy remains a same-resolution H.265 MP4 at 10 Mbps',()=>{
  const proxyIndex=source.indexOf('bottomRow.add("button", undefined, "Generate Proxy")');
  const stampIndex=source.indexOf('topRow.add("button", undefined, "Stamp 3D")');
  assert(proxyIndex>=0 && stampIndex>=0);
- assert(/-c:v " \+ encoder \+\s*" -b:v 10M -maxrate 10M -bufsize 20M/.test(source));
- assert(/hevc,\(\\d\+\),\(\\d\+\)/.test(source));
+ assert(/-b:v 10M -maxrate 10M -bufsize 20M/.test(source));
+ assert(/mode !== "work" && codec !== "hevc"/.test(source));
  assert(/item\.setProxy\(proxyFile\)/.test(source));
  assert(/item\.useProxy = true/.test(source));
  assert(/Image sequences are not converted/.test(source));
- assert(/sourceFile\.parent\.fsName \+ "\/Proxys"/.test(source));
- assert(/if \(!folder\.exists && !folder\.create\(\)\)/.test(source));
+ assert(/return sourceFile\.parent/.test(source));
+ assert(/mode === "work" \? "mov" : "mp4"/.test(source));
+});
+test('Work Proxy uses ProRes Proxy MOV and scales proportionally to at most 1080 high',()=>{
+ assert(/-c:v prores_ks -profile:v 0 -vendor apl0 -pix_fmt yuv422p10le/.test(source));
+ assert(/min\(1\\\\,1080\/ih\)/.test(source));
+ assert(/mode === "work" && codec !== "prores"/.test(source));
+ assert(/Math\.min\(1, 1080 \/ item\.height\)/.test(source));
+ assert(/expectedWidth/.test(source) && /expectedHeight/.test(source));
+ assert(/"Play Proxy"/.test(source) && /"Work Proxy"/.test(source));
+ assert(/dialog\.defaultElement=play/.test(source));
 });
 test('Generate Proxy supports comps through a disposable full-resolution intermediate',()=>{
  assert(/target instanceof CompItem/.test(source));
@@ -183,7 +194,7 @@ test('Generate Proxy supports comps through a disposable full-resolution interme
  assert(/"Resolution":"Full"/.test(source));
  assert(/"Proxy Use":"Use No Proxies"/.test(source));
  assert(/intermediate\.exists && !intermediate\.remove\(\)/.test(source));
- assert(/app\.project\.file\.parent\.fsName \+ "\/Proxys"/.test(source));
+ assert(/return app\.project\.file\.parent/.test(source));
 });
 test('Every selected composition proxy requires confirmation with Yes as default',()=>{
  assert(/target instanceof CompItem && !confirm\(/.test(source));
@@ -251,6 +262,8 @@ test('Every visible tool button has a concise hover description',()=>{
  assert(/camera\.helpTip=/.test(source));
  assert(/motion\.helpTip=/.test(source));
  assert(/cancel\.helpTip=/.test(source));
+ assert(/play\.helpTip=/.test(source));
+ assert(/work\.helpTip=/.test(source));
 });
 test('Stamp 3D does not reject projected corners outside the composition',()=>{
  assert(!/Keep all plane corners inside/.test(source));

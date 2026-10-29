@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.9.10 beta (2026-10-13)
+ * VFX ToolBox — 0.10.0 beta (2026-10-29)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,9 +7,9 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.9.10 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.10.0 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
-    var busy = false, trackerMenuOpen = false;
+    var busy = false, trackerMenuOpen = false, proxyMenuOpen = false;
 
     function fail(message) { throw new Error(message); }
     function message(text) {
@@ -33,11 +33,11 @@
         if (item instanceof CompItem) {
             if (!app.project.file)
                 fail("Save the After Effects project first so VFX ToolBox can store the composition proxy beside it.");
-            return new Folder(app.project.file.parent.fsName + "/Proxys");
+            return app.project.file.parent;
         }
         var sourceFile = item && item.mainSource ? item.mainSource.file : null;
         if (!sourceFile) fail("The selected footage does not have an accessible source file.");
-        return new Folder(sourceFile.parent.fsName + "/Proxys");
+        return sourceFile.parent;
     }
     function uniqueFile(folder, name, extension) {
         extension = extension || "png";
@@ -64,22 +64,25 @@
         }
         return file;
     }
-    function nextProxyFile(folder, itemName) {
-        var stem = safeName(String(itemName).replace(/\.[^.]+$/, "")) + "_Proxy";
+    function nextProxyFile(folder, itemName, extension) {
+        extension = extension || "mp4";
+        var stem = safeName(String(itemName).replace(/\.[^.]+$/, "")) + "_PROXY";
         var escaped = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), highest = 0;
-        var pattern = new RegExp("^" + escaped + "_(\\d+)\\.mp4$", "i");
+        var escapedExtension = extension.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        var pattern = new RegExp("^" + escaped + "(?:_(\\d+))?\\." + escapedExtension + "$", "i");
         var files = folder.getFiles();
         for (var i = 0; i < files.length; i++) {
             if (!(files[i] instanceof File)) continue;
             var match = pattern.exec(files[i].name);
-            if (match) highest = Math.max(highest, parseInt(match[1], 10));
+            if (match) highest = Math.max(highest, match[1] ? parseInt(match[1], 10) : 1);
         }
-        var number = highest + 1, padded = number < 10 ? "0" + number : String(number);
-        var file = new File(folder.fsName + "/" + stem + "_" + padded + ".mp4");
+        var number = highest ? highest + 1 : 1;
+        var suffix = number === 1 ? "" : "_" + (number < 10 ? "0" + number : String(number));
+        var file = new File(folder.fsName + "/" + stem + suffix + "." + extension);
         while (file.exists) {
             number++;
-            padded = number < 10 ? "0" + number : String(number);
-            file = new File(folder.fsName + "/" + stem + "_" + padded + ".mp4");
+            suffix = "_" + (number < 10 ? "0" + number : String(number));
+            file = new File(folder.fsName + "/" + stem + suffix + "." + extension);
         }
         return file;
     }
@@ -520,33 +523,54 @@
             var discovered = new File(located);
             if (located && discovered.exists) return discovered;
         }
-        fail("FFmpeg is required to generate an H.265 proxy. Install ffmpeg and try again.");
+        fail("FFmpeg is required to generate proxies. Install ffmpeg and try again.");
     }
-    function runProxyEncoder(ffmpeg, encoder, sourceFile, proxyFile) {
+    function runProxyEncoder(ffmpeg, mode, encoder, sourceFile, proxyFile) {
+        var videoSettings;
+        if(mode === "work") {
+            var filter = "scale=trunc(iw*min(1\\,1080/ih)/2)*2:trunc(ih*min(1\\,1080/ih)/2)*2";
+            videoSettings = " -vf " + shellQuote(filter) +
+                " -c:v prores_ks -profile:v 0 -vendor apl0 -pix_fmt yuv422p10le -c:a pcm_s16le";
+        } else {
+            videoSettings = " -c:v " + encoder +
+                " -b:v 10M -maxrate 10M -bufsize 20M -pix_fmt yuv420p -tag:v hvc1" +
+                " -c:a aac -b:a 192k";
+        }
         var command = shellQuote(ffmpeg.fsName) + " -hide_banner -loglevel error -y -i " + shellQuote(sourceFile.fsName) +
-            " -map 0:v:0 -map '0:a?' -sn -dn -map_metadata 0 -c:v " + encoder +
-            " -b:v 10M -maxrate 10M -bufsize 20M -pix_fmt yuv420p -tag:v hvc1" +
-            " -c:a aac -b:a 192k -movflags +faststart " + shellQuote(proxyFile.fsName) +
-            " 2>&1; printf '\\n__PLANETRACE_EXIT:%s' $?";
+            " -map 0:v:0 -map '0:a?' -sn -dn -map_metadata 0" + videoSettings +
+            " -movflags +faststart " + shellQuote(proxyFile.fsName) +
+            " 2>&1; printf '\\n__VFX_TOOLBOX_EXIT:%s' $?";
         var output = String(system.callSystem(command));
-        var status = /__PLANETRACE_EXIT:(\d+)\s*$/.exec(output);
-        return {ok: status && parseInt(status[1], 10) === 0, output: output.replace(/__PLANETRACE_EXIT:\d+\s*$/, "")};
+        var status = /__VFX_TOOLBOX_EXIT:(\d+)\s*$/.exec(output);
+        return {ok: status && parseInt(status[1], 10) === 0, output: output.replace(/__VFX_TOOLBOX_EXIT:\d+\s*$/, "")};
     }
-    function verifyProxyDimensions(ffprobe, proxyFile, item) {
+    function verifyProxy(ffprobe, proxyFile, item, mode) {
         var command = shellQuote(ffprobe.fsName) + " -v error -select_streams v:0" +
             " -show_entries stream=codec_name,width,height -of csv=s=,:p=0 " + shellQuote(proxyFile.fsName) + " 2>&1";
         var output = String(system.callSystem(command));
-        var match = /hevc,(\d+),(\d+)/i.exec(output);
-        if (!match) fail("The generated proxy is not a readable H.265 / HEVC video.");
-        var width = parseInt(match[1], 10), height = parseInt(match[2], 10);
-        if (width !== item.width || height !== item.height)
-            fail("Proxy resolution mismatch: generated " + width + "x" + height +
+        var match = /([a-z0-9_]+),(\d+),(\d+)/i.exec(output);
+        if (!match) fail("The generated proxy is not a readable video.");
+        var codec = String(match[1]).toLowerCase();
+        if(mode === "work" && codec !== "prores") fail("The Work Proxy is not Apple ProRes.");
+        if(mode !== "work" && codec !== "hevc") fail("The Play Proxy is not H.265 / HEVC.");
+        var width = parseInt(match[2], 10), height = parseInt(match[3], 10);
+        if(mode === "work") {
+            var scale = Math.min(1, 1080 / item.height);
+            var expectedWidth = Math.max(2, Math.floor(item.width * scale / 2) * 2);
+            var expectedHeight = Math.max(2, Math.floor(item.height * scale / 2) * 2);
+            if(width !== expectedWidth || height !== expectedHeight)
+                fail("Work Proxy resolution mismatch: generated " + width + "x" + height +
+                    "; expected " + expectedWidth + "x" + expectedHeight + ".");
+        } else if (width !== item.width || height !== item.height) {
+            fail("Play Proxy resolution mismatch: generated " + width + "x" + height +
                 "; source is " + item.width + "x" + item.height + ".");
+        }
     }
-    function generateProxy(item, folder) {
+    function generateProxy(item, folder, mode) {
         var isComp=item instanceof CompItem, sourceFile=null, intermediate=null;
         var ffmpeg = findExecutable("ffmpeg"), ffprobe = findExecutable("ffprobe");
-        var proxyFile = nextProxyFile(folder, item.name), encoded = null;
+        var extension = mode === "work" ? "mov" : "mp4";
+        var proxyFile = nextProxyFile(folder, item.name, extension), encoded = null;
         try {
             if(isComp) {
                 if(!(item.duration>0)) fail("The selected composition has no renderable duration.");
@@ -557,20 +581,21 @@
             } else {
                 sourceFile=item.mainSource.file;
                 if (!sourceFile || !sourceFile.exists) fail("The selected source file is missing or offline.");
-                if (item.mainSource.isStill) fail("Select a movie file. Still images do not need an H.265 movie proxy.");
+                if (item.mainSource.isStill) fail("Select a movie file. Still images do not need a movie proxy.");
                 if (!/\.(?:mp4|mov|m4v|mxf|avi|wmv|mpg|mpeg|m2v|mts|m2ts|webm|mkv|flv|f4v|3gp|3g2|ts|vob|ogv|crm|ari|arx|braw|r3d)$/i.test(sourceFile.name))
                     fail("Select a supported movie file. Image sequences are not converted by Generate Proxy.");
             }
             if (!item.hasVideo) fail("The selected item has no video stream.");
-            message("Generating Proxy…");
-            encoded = runProxyEncoder(ffmpeg, "hevc_videotoolbox", sourceFile, proxyFile);
-            if (!encoded.ok) {
+            message(mode === "work" ? "Work Proxy…" : "Play Proxy…");
+            encoded = runProxyEncoder(ffmpeg, mode, mode === "work" ? "prores_ks" : "hevc_videotoolbox", sourceFile, proxyFile);
+            if (!encoded.ok && mode !== "work") {
                 if (proxyFile.exists) proxyFile.remove();
-                encoded = runProxyEncoder(ffmpeg, "libx265", sourceFile, proxyFile);
+                encoded = runProxyEncoder(ffmpeg, mode, "libx265", sourceFile, proxyFile);
             }
             if (!encoded.ok || !proxyFile.exists || proxyFile.length <= 0)
-                fail("FFmpeg could not generate the H.265 proxy. " + (encoded ? encoded.output : ""));
-            verifyProxyDimensions(ffprobe, proxyFile, item);
+                fail("FFmpeg could not generate the " + (mode === "work" ? "Work" : "Play") + " Proxy. " +
+                    (encoded ? encoded.output : ""));
+            verifyProxy(ffprobe, proxyFile, item, mode);
             item.setProxy(proxyFile);
             item.useProxy = true;
             return proxyFile;
@@ -804,6 +829,29 @@
         dialog.show();
         return choice;
     }
+    function chooseProxyMode() {
+        var dialog=new Window("dialog", "Generate Proxy");
+        dialog.orientation="column";
+        dialog.alignChildren=["fill","fill"];
+        dialog.spacing=8;
+        dialog.margins=12;
+        dialog.add("statictext", undefined, "Choose a proxy:");
+        var play=dialog.add("button", undefined, "Play Proxy");
+        var work=dialog.add("button", undefined, "Work Proxy");
+        var cancel=dialog.add("button", undefined, "Cancel", {name:"cancel"});
+        play.helpTip="Create a same-resolution H.265 MP4 proxy at 10 Mbps.";
+        work.helpTip="Create an Apple ProRes Proxy MOV with a maximum height of 1080 pixels.";
+        cancel.helpTip="Close without generating a proxy.";
+        var choice=null;
+        play.onClick=function(){ choice="play"; dialog.close(1); };
+        work.onClick=function(){ choice="work"; dialog.close(1); };
+        cancel.onClick=function(){ dialog.close(0); };
+        dialog.defaultElement=play;
+        dialog.cancelElement=cancel;
+        dialog.center();
+        dialog.show();
+        return choice;
+    }
     function beginAction(button) {
         if (busy) return;
         busy = true; activeButton = button;
@@ -846,8 +894,11 @@
         }
     }
     function runProxy() {
-        if (!beginAction(proxyButton)) return;
+        if (busy || proxyMenuOpen) return;
+        proxyMenuOpen=true;
         try {
+            var choice=chooseProxyMode();
+            if (!choice || !beginAction(proxyButton)) return;
             if (app.preferences.getPrefAsLong("Main Pref Section", "Pref_SCRIPTING_FILE_NETWORK_SECURITY") !== 1)
                 fail("Enable Allow Scripts to Write Files and Access Network in Preferences > Scripting & Expressions.");
             var selected = app.project.selection;
@@ -858,12 +909,15 @@
             if (target instanceof CompItem && !confirm(
                 "Generate proxy for this composition?", false, TITLE)) return;
             var folder = proxiesFolder(target);
-            if (!folder.exists && !folder.create()) fail("Could not create the proxy folder: " + folder.fsName);
-            var file = generateProxy(target, folder);
+            if (!folder.exists) fail("The source folder is not available: " + folder.fsName);
+            var file = generateProxy(target, folder, choice);
             message("Proxy Ready");
             $.sleep(500);
         } catch (e) { alert(e.message || e.toString(), TITLE); }
-        finally { endAction(); }
+        finally {
+            proxyMenuOpen=false;
+            if (busy) endAction();
+        }
     }
     function runSave() {
         if (!beginAction(saveButton)) return;
@@ -952,7 +1006,7 @@
         proxyButton.alignment = ["fill","fill"];
         proxyButton.preferredSize = [145, 36];
         proxyButton.minimumSize = [80, 32];
-        proxyButton.helpTip = "Create and assign a same-resolution H.265 proxy at 10 Mbps.";
+        proxyButton.helpTip = "Choose a Play Proxy or an editing-friendly Work Proxy.";
         proxyButton.onClick = runProxy;
         reloadButton = bottomRow.add("button", undefined, "Reload Textures");
         reloadButton.alignment = ["fill","fill"];

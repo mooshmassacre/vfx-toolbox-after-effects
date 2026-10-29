@@ -1,8 +1,8 @@
 # VFX ToolBox
 
-**0.9.10 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.10.0 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
-VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates same-resolution H.265 proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
+VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
 ## Use
 
@@ -11,7 +11,7 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 3. Open a square-pixel composition at Full resolution with an ICC working color space.
 4. Select one unlocked 3D visual layer. Keep all corners inside the frame and disable every Solo switch.
 5. To start tracking, select exactly one layer in the active composition and click **Tracker**. 3D Camera Tracker accepts imported movies and image sequences; Motion Tracker also accepts pre-composition layers.
-6. To create a proxy, select exactly one imported movie, composition or pre-composition in the Project panel and click **Generate Proxy**.
+6. To create a proxy, select exactly one imported movie, composition or pre-composition in the Project panel, click **Generate Proxy**, then choose Play Proxy or Work Proxy.
 7. Click **Stamp 3D** to create a projected texture, or **Save Frame** to save the complete composition frame at the playhead.
 8. Click **Reload Textures** to force every file-based imported asset in the project to reload from disk.
 
@@ -19,9 +19,11 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 
 **Tracker** is a standard clickable button that opens a two-option chooser. **3D Camera Tracker** applies After Effects' native tracker effect to a selected unlocked 2D movie or image-sequence layer and refuses duplicate application. **Motion Tracker** accepts an imported movie, image sequence or pre-composition layer, creates a 2D Null named `TRACKER_01`, `TRACKER_02`, and so on, then invokes After Effects' native Track Motion command for that layer. Its generated Null source is stored in a top-level **Assets** folder in the Project panel, which VFX ToolBox creates when needed.
 
-**Generate Proxy** is the first action in the panel. It creates an H.265/HEVC MP4 at a 10 Mbps target video bitrate, retains the selected item's pixel dimensions, encodes audio as AAC and immediately assigns and enables the result as that item's proxy. For imported movies, the automatically created **Proxys** folder is beside the original media. For compositions and pre-compositions, **Proxys** is beside the saved `.aep` project. Names increment as `Original_Proxy_01.mp4`, `Original_Proxy_02.mp4`, and so on, without replacing an earlier proxy. FFmpeg and ffprobe are required; VFX ToolBox detects Homebrew installations on Apple Silicon and Intel Macs.
+**Generate Proxy** opens a two-option chooser. **Play Proxy** creates a same-resolution H.265/HEVC MP4 at a 10 Mbps target video bitrate with AAC audio. **Work Proxy** creates an editing-friendly QuickTime MOV using Apple ProRes 422 Proxy with PCM audio; it never upscales, limits height to 1080 pixels and preserves the source aspect ratio.
 
-Composition proxies use an isolated full-resolution QuickTime intermediate rendered by After Effects with effects, motion blur and frame blending enabled according to the composition. VFX ToolBox preserves the enabled state of existing Render Queue items, excludes existing proxies from the intermediate, removes its temporary queue item, converts the complete composition duration and deletes the intermediate after H.265 encoding. The project must be saved before generating a composition proxy.
+Both proxy types are immediately assigned and enabled on the selected item. Imported-movie proxies are saved directly beside the original source file. Composition and pre-composition proxies are saved directly beside the `.aep` project. The first filenames are `Original_PROXY.mp4` and `Original_PROXY.mov`; repeated exports increment as `Original_PROXY_02`, `Original_PROXY_03`, and so on without replacing an earlier proxy. FFmpeg and ffprobe are required; VFX ToolBox detects Homebrew installations on Apple Silicon and Intel Macs.
+
+Composition proxies use an isolated full-resolution QuickTime intermediate rendered by After Effects with effects, motion blur and frame blending enabled according to the composition. VFX ToolBox preserves the enabled state of existing Render Queue items, excludes existing proxies from the intermediate, removes its temporary queue item, converts the complete composition duration to the chosen proxy type and deletes the intermediate. The project must be saved before generating a composition proxy.
 
 When the selected Project-panel item is any composition rather than an imported movie, VFX ToolBox asks **“Generate proxy for this composition?”** before rendering. **Yes** is the default choice; **No** cancels the operation.
 
@@ -59,7 +61,7 @@ The direct After Effects PNG method does not embed an ICC profile, so its conver
 - Non-square pixels, collapsed transformations, nonzero anchor Z and active Solo switches are rejected.
 - Direct frame capture and conversion are synchronous and may briefly block the interface.
 - Headless PSD conversion for Stamp 3D and 8/16-bpc Save Frame currently requires macOS.
-- Generate Proxy currently requires macOS and FFmpeg. It accepts file-based movies and saved-project compositions; still images and image sequences are not transcoded.
+- Generate Proxy currently requires macOS, FFmpeg and ffprobe. It accepts file-based movies and saved-project compositions; still images and image sequences are not transcoded.
 - Undo does not delete the PSD from disk.
 
 ## Attribution
