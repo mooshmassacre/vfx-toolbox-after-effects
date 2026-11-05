@@ -1,6 +1,6 @@
 # VFX ToolBox
 
-**0.11.3 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.11.4 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
 VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
@@ -15,7 +15,7 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 7. Click **Stamp 3D** to create a projected texture. Click **Save Frame**, then choose Save Plate or Save Unstretched.
 8. Click **Reload Textures** to force every file-based imported asset in the project to reload from disk.
 
-**Versioning** saves the open project beside its current file as `Project_V01.aep`, `Project_V02.aep`, and so on. It scans the folder for the highest existing version, never replaces an earlier file and leaves the newly saved version open as the active After Effects project. For an unsaved project, the first click opens After Effects' native Save As dialog and keeps the chosen initial project open; numbered versions begin on subsequent clicks. Cancelling the dialog creates nothing.
+**Save AEP** saves an existing project beside its current file as `Project_V1.aep`, `Project_V2.aep`, and so on. It scans the folder for the highest existing version, never replaces an earlier file and leaves the newly saved version open as the active After Effects project. For an unsaved project, the first click opens After Effects' native Save As dialog and keeps the chosen initial project open; numbered versions begin on subsequent clicks. Cancelling the dialog creates nothing.
 
 **Tracker** is a standard clickable button that opens a two-option chooser. **3D Camera Tracker** applies After Effects' native tracker effect to a selected unlocked 2D movie or image-sequence layer and refuses duplicate application. **Motion Tracker** accepts an imported movie, image sequence or pre-composition layer, creates a 2D Null named `TRACKER_01`, `TRACKER_02`, and so on, then invokes After Effects' native Track Motion command for that layer. Its generated Null source is stored in a top-level **Assets** folder in the Project panel, which VFX ToolBox creates when needed.
 
@@ -27,7 +27,7 @@ Composition proxies use an isolated full-resolution QuickTime intermediate rende
 
 When the selected Project-panel item is any composition rather than an imported movie, VFX ToolBox asks **“Generate proxy for this composition?”** before rendering. **Yes** is the default choice; **No** cancels the operation.
 
-The panel uses a responsive three-column, two-row layout. Tracker, Stamp 3D and Save Frame occupy the first row; Versioning, Generate Proxy and Reload Textures occupy the second row. All six controls expand and contract with the panel.
+The panel uses a responsive three-column, two-row layout. Tracker, Stamp 3D and Save Frame occupy the first row; Save AEP, Generate Proxy and Reload Textures occupy the second row. All six controls expand and contract with the panel.
 
 Every panel button displays a concise tooltip after the pointer rests over it. The three choices inside the Tracker dialog also describe their actions on hover.
 

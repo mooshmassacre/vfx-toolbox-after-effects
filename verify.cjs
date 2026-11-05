@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.3 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.4 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -61,11 +61,13 @@ test('Proxy naming starts at V1, increments by format and never replaces',()=>{
  assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mov').name,'Shot_PROXY_V2.mov');
  assert.equal(sandbox.api.nextProxyFile(folder,'New Shot.mov','mp4').name,'New Shot_PROXY_V1.mp4');
 });
-test('Project versioning increments the highest version and keeps the base name',()=>{
+test('AEP versioning starts at V1 without zero padding and keeps the base name',()=>{
  const names=['Feature.aep','Feature_V01.aep','Feature_V04.aep','Other_V20.aep'];
  const folder={fsName:'/project',getFiles(){return names.map(n=>new MockFile('/project/'+n));}};
- assert.equal(sandbox.api.nextVersionFile(folder,'Feature.aep').name,'Feature_V05.aep');
- assert.equal(sandbox.api.nextVersionFile(folder,'Feature_V04.aep').name,'Feature_V05.aep');
+ assert.equal(sandbox.api.nextVersionFile(folder,'Feature.aep').name,'Feature_V5.aep');
+ assert.equal(sandbox.api.nextVersionFile(folder,'Feature_V04.aep').name,'Feature_V5.aep');
+ const empty={fsName:'/project',getFiles(){return [];}};
+ assert.equal(sandbox.api.nextVersionFile(empty,'New Project.aep').name,'New Project_V1.aep');
 });
 function templateItem(definitions){let current=null;return {outputModule(){return {templates:Object.keys(definitions),applyTemplate(n){current=n;},getSettings(mode){return mode===2?{}:definitions[current];}};}};}
 for(const depth of [8,16])test('Select native PNG '+depth+'-bit output',()=>{
@@ -284,12 +286,12 @@ test('Interface is a responsive grid of two rows and three buttons',()=>{
  assert.equal((source.match(/bottomRow\.add\("button"/g)||[]).length,3);
  assert(/topRow\.add\("button", undefined, "Tracker"\)/.test(source));
  assert(/bottomRow\.add\("button", undefined, "Generate Proxy"\)/.test(source));
- assert(/bottomRow\.add\("button", undefined, "Versioning"\)/.test(source));
+ assert(/bottomRow\.add\("button", undefined, "Save AEP"\)/.test(source));
  assert(/bottomRow\.add\("button", undefined, "Reload Textures"\)/.test(source));
  assert.equal((source.match(/\.alignment = \["fill","fill"\]/g)||[]).length>=8,true);
  assert(/versioningButton\.onClick = runVersioning/.test(source));
  const top=["Tracker","Stamp 3D","Save Frame"].map(label=>source.indexOf('topRow.add("button", undefined, "'+label+'")'));
- const bottom=["Versioning","Generate Proxy","Reload Textures"].map(label=>source.indexOf('bottomRow.add("button", undefined, "'+label+'")'));
+ const bottom=["Save AEP","Generate Proxy","Reload Textures"].map(label=>source.indexOf('bottomRow.add("button", undefined, "'+label+'")'));
  assert(top[0]>=0 && top[0]<top[1] && top[1]<top[2]);
  assert(bottom[0]>=0 && bottom[0]<bottom[1] && bottom[1]<bottom[2]);
 });
@@ -323,7 +325,7 @@ test('Motion Tracker accepts pre-composition layers',()=>{
  assert(/!isPrecomp && !isTrackableFootage/.test(motionBody));
  assert(/movie, image-sequence, or pre-composition layer/.test(motionBody));
 });
-test('Versioning saves the next project file and keeps it open',()=>{
+test('Save AEP opens Save As once, then saves the next project version and keeps it open',()=>{
  assert(/function saveNextProjectVersion\(\)/.test(source));
  assert(/app\.project\.saveWithDialog\(\)/.test(source));
  assert(/if \(!saved \|\| !app\.project\.file\) return null/.test(source));

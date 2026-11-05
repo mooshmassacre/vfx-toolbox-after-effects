@@ -299,3 +299,9 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Keeps Play Proxy assigned through After Effects' native proxy system.
 - Imports Work Proxy as ordinary footage without assigning it as a native proxy to the source item.
 - Creates a same-named pre-composition containing the imported Work Proxy and opens it immediately for editing.
+
+# Save AEP naming in 0.11.4 beta
+
+- Renames the Versioning control to `Save AEP`.
+- Opens After Effects' native Save As dialog when the project has never been saved.
+- Saves existing projects with unpadded `_V1`, `_V2`, `_V3` and subsequent suffixes without replacing earlier versions.

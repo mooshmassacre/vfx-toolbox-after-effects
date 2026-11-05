@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.11.3 beta (2026-11-05)
+ * VFX ToolBox — 0.11.4 beta (2026-11-05)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.11.3 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.4 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
@@ -96,12 +96,11 @@
             var match = pattern.exec(files[i].name);
             if (match) highest = Math.max(highest, parseInt(match[1], 10));
         }
-        var number = highest + 1, padded = number < 10 ? "0" + number : String(number);
-        var file = new File(folder.fsName + "/" + stem + "_V" + padded + "." + extension);
+        var number = highest + 1;
+        var file = new File(folder.fsName + "/" + stem + "_V" + number + "." + extension);
         while (file.exists) {
             number++;
-            padded = number < 10 ? "0" + number : String(number);
-            file = new File(folder.fsName + "/" + stem + "_V" + padded + "." + extension);
+            file = new File(folder.fsName + "/" + stem + "_V" + number + "." + extension);
         }
         return file;
     }
@@ -1107,7 +1106,7 @@
     function endAction() {
         busy = false; activeButton = null;
         trackerButton.enabled = true; proxyButton.enabled = true; captureButton.enabled = true; saveButton.enabled = true; versioningButton.enabled = true; reloadButton.enabled = true;
-        trackerButton.text = "Tracker"; proxyButton.text = "Generate Proxy"; captureButton.text = "Stamp 3D"; saveButton.text = "Save Frame"; versioningButton.text = "Versioning"; reloadButton.text = "Reload Textures";
+        trackerButton.text = "Tracker"; proxyButton.text = "Generate Proxy"; captureButton.text = "Stamp 3D"; saveButton.text = "Save Frame"; versioningButton.text = "Save AEP"; reloadButton.text = "Reload Textures";
     }
     function runCapture() {
         if (!beginAction(captureButton)) return;
@@ -1250,11 +1249,11 @@
         saveButton.minimumSize = [80, 32];
         saveButton.helpTip = "Choose Save Plate or Save Unstretched for the current frame.";
         saveButton.onClick = runSave;
-        versioningButton = bottomRow.add("button", undefined, "Versioning");
+        versioningButton = bottomRow.add("button", undefined, "Save AEP");
         versioningButton.alignment = ["fill","fill"];
         versioningButton.preferredSize = [145, 36];
         versioningButton.minimumSize = [80, 32];
-        versioningButton.helpTip = "Save the open project as the next numbered _V01, _V02, and so on.";
+        versioningButton.helpTip = "Save the project, or create the next _V1, _V2, and later AEP version.";
         versioningButton.onClick = runVersioning;
         proxyButton = bottomRow.add("button", undefined, "Generate Proxy");
         proxyButton.alignment = ["fill","fill"];
