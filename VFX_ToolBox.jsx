@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.11.2 beta (2026-11-05)
+ * VFX ToolBox — 0.11.3 beta (2026-11-05)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.11.2 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.3 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
@@ -214,6 +214,21 @@
         footage.comment=TITLE + " " + VERSION + " | " +
             (mode === "work" ? "Work Proxy" : "Play Proxy") + " for " + target.name;
         return footage;
+    }
+    function createWorkProxyComp(footage) {
+        var frameRate=footage.frameRate || 25;
+        var duration=footage.duration;
+        if(!(duration>0)) duration=1/frameRate;
+        var comp=app.project.items.addComp(footage.name, footage.width, footage.height,
+            footage.pixelAspect, duration, frameRate);
+        comp.parentFolder=projectProxiesFolder();
+        comp.comment=TITLE + " " + VERSION + " | Work Proxy editing composition";
+        var layer=comp.layers.add(footage);
+        layer.startTime=0;
+        layer.inPoint=0;
+        layer.outPoint=duration;
+        comp.openInViewer();
+        return comp;
     }
     function nextTrackerName(comp) {
         var highest = 0;
@@ -582,7 +597,7 @@
         }
     }
     function generateProxy(item, folder, mode) {
-        var isComp=item instanceof CompItem, sourceFile=null, intermediate=null, importedProxy=null;
+        var isComp=item instanceof CompItem, sourceFile=null, intermediate=null, importedProxy=null, workComp=null;
         var ffmpeg = findExecutable("ffmpeg"), ffprobe = findExecutable("ffprobe");
         var extension = mode === "work" ? "mov" : "mp4";
         var proxyName = isComp ? app.project.file.name : item.name;
@@ -613,10 +628,15 @@
                     (encoded ? encoded.output : ""));
             verifyProxy(ffprobe, proxyFile, item, mode);
             importedProxy=importProxyFootage(proxyFile,item,mode);
-            item.setProxy(proxyFile);
-            item.useProxy = true;
+            if(mode === "work") {
+                workComp=createWorkProxyComp(importedProxy);
+            } else {
+                item.setProxy(proxyFile);
+                item.useProxy = true;
+            }
             return proxyFile;
         } catch (error) {
+            if(workComp) { try { workComp.remove(); } catch(compCleanupError) {} }
             if(importedProxy) { try { importedProxy.remove(); } catch(importCleanupError) {} }
             if (proxyFile.exists) proxyFile.remove();
             throw error;
@@ -1024,7 +1044,7 @@
         var work=dialog.add("button", undefined, "Work Proxy - Low Res | QTProxy");
         var cancel=dialog.add("button", undefined, "Cancel", {name:"cancel"});
         play.helpTip="Create a same-resolution H.265 MP4 proxy at 50 Mbps.";
-        work.helpTip="Create an Apple ProRes Proxy MOV with a maximum height of 1080 pixels.";
+        work.helpTip="Import a ProRes Proxy MOV, create a matching precomp and open it for editing.";
         cancel.helpTip="Close without generating a proxy.";
         var choice=null;
         play.onClick=function(){ choice="play"; dialog.close(1); };

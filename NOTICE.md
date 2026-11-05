@@ -293,3 +293,9 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Raises Play Proxy from 10 Mbps to 50 Mbps, with a 50 Mbps maximum rate and 100 Mbps encoder buffer.
 - Names composition and pre-composition proxies after the saved After Effects project instead of the selected composition.
 - Starts both Play and Work Proxy filenames at `_PROXY_V1` and increments V2, V3 and onward independently by output format without replacing files.
+
+# Editable Work Proxy compositions in 0.11.3 beta
+
+- Keeps Play Proxy assigned through After Effects' native proxy system.
+- Imports Work Proxy as ordinary footage without assigning it as a native proxy to the source item.
+- Creates a same-named pre-composition containing the imported Work Proxy and opens it immediately for editing.

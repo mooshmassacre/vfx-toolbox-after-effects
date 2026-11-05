@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.2 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.3 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -247,7 +247,18 @@ test('Generated proxies are imported into the Project panel Proxies folder',()=>
  assert(/footage\.parentFolder=projectProxiesFolder\(\)/.test(source));
  const generateBody=source.slice(source.indexOf('function generateProxy('),source.indexOf('function convertPNGToPSD('));
  assert(/importedProxy=importProxyFootage\(proxyFile,item,mode\)/.test(generateBody));
- assert(generateBody.indexOf('importedProxy=importProxyFootage') < generateBody.indexOf('item.setProxy(proxyFile)'));
+ assert(generateBody.indexOf('importedProxy=importProxyFootage') < generateBody.indexOf('if(mode === "work")'));
+});
+test('Work Proxy imports normally, creates a matching precomp and opens it without assigning a native proxy',()=>{
+ const generateBody=source.slice(source.indexOf('function generateProxy('),source.indexOf('function convertPNGToPSD('));
+ const workBranch=generateBody.slice(generateBody.indexOf('if(mode === "work")'),generateBody.indexOf('return proxyFile'));
+ assert(/workComp=createWorkProxyComp\(importedProxy\)/.test(workBranch));
+ assert(/else \{\s*item\.setProxy\(proxyFile\);\s*item\.useProxy = true/.test(workBranch));
+ assert(/function createWorkProxyComp\(footage\)/.test(source));
+ assert(/app\.project\.items\.addComp\(footage\.name, footage\.width, footage\.height/.test(source));
+ assert(/comp\.layers\.add\(footage\)/.test(source));
+ assert(/comp\.parentFolder=projectProxiesFolder\(\)/.test(source));
+ assert(/comp\.openInViewer\(\)/.test(source));
 });
 test('Generate Proxy supports comps through a disposable full-resolution intermediate',()=>{
  assert(/target instanceof CompItem/.test(source));
