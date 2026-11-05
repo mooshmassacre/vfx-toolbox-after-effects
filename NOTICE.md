@@ -287,3 +287,9 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Maps the cropped object's four mask-bound corners to the composition edges for the saved PNG.
 - Reuses the same original composition-space corners in the imported layer's Corner Pin so the stretched Plate returns to its captured placement.
 - Uses the actual vertices of a single four-point mask; irregular and multi-mask cuts fall back to their combined vertex bounds.
+
+# Project-named high-quality proxies in 0.11.2 beta
+
+- Raises Play Proxy from 10 Mbps to 50 Mbps, with a 50 Mbps maximum rate and 100 Mbps encoder buffer.
+- Names composition and pre-composition proxies after the saved After Effects project instead of the selected composition.
+- Starts both Play and Work Proxy filenames at `_PROXY_V1` and increments V2, V3 and onward independently by output format without replacing files.

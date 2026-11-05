@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.11.1 beta (2026-10-29)
+ * VFX ToolBox — 0.11.2 beta (2026-11-05)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.11.1 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.2 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
@@ -69,20 +69,18 @@
         var stem = safeName(String(itemName).replace(/\.[^.]+$/, "")) + "_PROXY";
         var escaped = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), highest = 0;
         var escapedExtension = extension.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        var pattern = new RegExp("^" + escaped + "(?:_(\\d+))?\\." + escapedExtension + "$", "i");
+        var pattern = new RegExp("^" + escaped + "_V(\\d+)\\." + escapedExtension + "$", "i");
         var files = folder.getFiles();
         for (var i = 0; i < files.length; i++) {
             if (!(files[i] instanceof File)) continue;
             var match = pattern.exec(files[i].name);
-            if (match) highest = Math.max(highest, match[1] ? parseInt(match[1], 10) : 1);
+            if (match) highest = Math.max(highest, parseInt(match[1], 10));
         }
-        var number = highest ? highest + 1 : 1;
-        var suffix = number === 1 ? "" : "_" + (number < 10 ? "0" + number : String(number));
-        var file = new File(folder.fsName + "/" + stem + suffix + "." + extension);
+        var number = highest + 1;
+        var file = new File(folder.fsName + "/" + stem + "_V" + number + "." + extension);
         while (file.exists) {
             number++;
-            suffix = "_" + (number < 10 ? "0" + number : String(number));
-            file = new File(folder.fsName + "/" + stem + suffix + "." + extension);
+            file = new File(folder.fsName + "/" + stem + "_V" + number + "." + extension);
         }
         return file;
     }
@@ -550,7 +548,7 @@
                 " -c:v prores_ks -profile:v 0 -vendor apl0 -pix_fmt yuv422p10le -c:a pcm_s16le";
         } else {
             videoSettings = " -c:v " + encoder +
-                " -b:v 10M -maxrate 10M -bufsize 20M -pix_fmt yuv420p -tag:v hvc1" +
+                " -b:v 50M -maxrate 50M -bufsize 100M -pix_fmt yuv420p -tag:v hvc1" +
                 " -c:a aac -b:a 192k";
         }
         var command = shellQuote(ffmpeg.fsName) + " -hide_banner -loglevel error -y -i " + shellQuote(sourceFile.fsName) +
@@ -587,7 +585,8 @@
         var isComp=item instanceof CompItem, sourceFile=null, intermediate=null, importedProxy=null;
         var ffmpeg = findExecutable("ffmpeg"), ffprobe = findExecutable("ffprobe");
         var extension = mode === "work" ? "mov" : "mp4";
-        var proxyFile = nextProxyFile(folder, item.name, extension), encoded = null;
+        var proxyName = isComp ? app.project.file.name : item.name;
+        var proxyFile = nextProxyFile(folder, proxyName, extension), encoded = null;
         try {
             if(isComp) {
                 if(!(item.duration>0)) fail("The selected composition has no renderable duration.");
@@ -1024,7 +1023,7 @@
         var play=dialog.add("button", undefined, "Play Proxy - Same Res | H265");
         var work=dialog.add("button", undefined, "Work Proxy - Low Res | QTProxy");
         var cancel=dialog.add("button", undefined, "Cancel", {name:"cancel"});
-        play.helpTip="Create a same-resolution H.265 MP4 proxy at 10 Mbps.";
+        play.helpTip="Create a same-resolution H.265 MP4 proxy at 50 Mbps.";
         work.helpTip="Create an Apple ProRes Proxy MOV with a maximum height of 1080 pixels.";
         cancel.helpTip="Close without generating a proxy.";
         var choice=null;

@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.1 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.2 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -54,12 +54,12 @@ test('Plate numbering is shared across previous and current formats',()=>{
  const folder={fsName:'/project/Plates',getFiles(){return names.map(n=>new MockFile('/project/Plates/'+n));}};
  assert.equal(sandbox.api.nextPlateFile(folder,'psd').name,'Plate_11.psd');
 });
-test('Proxy naming uses the source folder, uppercase suffix and no replacement',()=>{
- const names=['Shot_PROXY.mp4','Shot_PROXY_04.MP4','Shot_PROXY.mov','Other_PROXY_20.mp4'];
+test('Proxy naming starts at V1, increments by format and never replaces',()=>{
+ const names=['Shot_PROXY_V1.mp4','Shot_PROXY_V4.MP4','Shot_PROXY_V1.mov','Other_PROXY_V20.mp4'];
  const folder={fsName:'/media',getFiles(){return names.map(n=>new MockFile('/media/'+n));}};
- assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mp4').name,'Shot_PROXY_05.mp4');
- assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mov').name,'Shot_PROXY_02.mov');
- assert.equal(sandbox.api.nextProxyFile(folder,'New Shot.mov','mp4').name,'New Shot_PROXY.mp4');
+ assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mp4').name,'Shot_PROXY_V5.mp4');
+ assert.equal(sandbox.api.nextProxyFile(folder,'Shot.mov','mov').name,'Shot_PROXY_V2.mov');
+ assert.equal(sandbox.api.nextProxyFile(folder,'New Shot.mov','mp4').name,'New Shot_PROXY_V1.mp4');
 });
 test('Project versioning increments the highest version and keeps the base name',()=>{
  const names=['Feature.aep','Feature_V01.aep','Feature_V04.aep','Other_V20.aep'];
@@ -199,17 +199,21 @@ test('Interface includes Reload Textures beside the existing actions',()=>{
  assert(/reloadButton\.onClick = runReload/.test(source));
  assert(/reloadButton\.enabled = false/.test(source));
 });
-test('Play Proxy remains a same-resolution H.265 MP4 at 10 Mbps',()=>{
+test('Play Proxy remains a same-resolution H.265 MP4 at 50 Mbps',()=>{
  const proxyIndex=source.indexOf('bottomRow.add("button", undefined, "Generate Proxy")');
  const stampIndex=source.indexOf('topRow.add("button", undefined, "Stamp 3D")');
  assert(proxyIndex>=0 && stampIndex>=0);
- assert(/-b:v 10M -maxrate 10M -bufsize 20M/.test(source));
+ assert(/-b:v 50M -maxrate 50M -bufsize 100M/.test(source));
  assert(/mode !== "work" && codec !== "hevc"/.test(source));
  assert(/item\.setProxy\(proxyFile\)/.test(source));
  assert(/item\.useProxy = true/.test(source));
  assert(/Image sequences are not converted/.test(source));
  assert(/return sourceFile\.parent/.test(source));
  assert(/mode === "work" \? "mov" : "mp4"/.test(source));
+});
+test('Composition proxies use the saved After Effects project name',()=>{
+ assert(/var proxyName = isComp \? app\.project\.file\.name : item\.name/.test(source));
+ assert(/nextProxyFile\(folder, proxyName, extension\)/.test(source));
 });
 test('Work Proxy uses ProRes Proxy MOV and scales proportionally to at most 1080 high',()=>{
  assert(/-c:v prores_ks -profile:v 0 -vendor apl0 -pix_fmt yuv422p10le/.test(source));
