@@ -310,3 +310,14 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 
 - Allows both 3D Camera Tracker and Motion Tracker to target imported footage or pre-composition layers.
 - Keeps the 3D Camera Tracker requirements for one unlocked 2D layer and duplicate-effect prevention.
+
+# Timeline-cut Work Proxies in 0.11.6 beta
+
+- Uses the selected timeline layer's source-time In/Out range when creating a Work Proxy.
+- Trims the source directly with FFmpeg without creating or rendering an After Effects Render Queue item.
+- Keeps Project-panel Work Proxy generation on the complete source and rejects timeline layers with Time Remap or non-100% Stretch to avoid inaccurate cuts.
+
+# Mocha Pro tracker option in 0.11.6 beta
+
+- Adds Mocha Pro as the third Tracker choice for footage, image-sequence and pre-composition layers.
+- Detects the installed Boris FX Mocha Pro effect by its plug-in match name and prevents duplicate application.

@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.5 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.6 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -235,10 +235,22 @@ test('Generate Proxy accepts one movie footage layer selected in the timeline',(
  assert(/comp\.selectedLayers\.length!==1/.test(body));
  assert(/layer\.source instanceof FootageItem/.test(body));
  assert(/layer\.source\.mainSource instanceof FileSource/.test(body));
- assert(/return layer\.source/.test(body));
- assert(/var target=selectedProxyTarget\(\)/.test(source));
+ assert(/return \{item:layer\.source, trim:/.test(body));
+ assert(/var selection=selectedProxyTarget\(choice\),target=selection\.item/.test(source));
  assert(/item\.setProxy\(proxyFile\)/.test(source));
  assert(/item\.useProxy = true/.test(source));
+});
+test('Timeline Work Proxy trims directly with FFmpeg and never uses the Render Queue',()=>{
+ const timelineBody=source.slice(source.indexOf('function timelineProxyTarget('),source.indexOf('function selectedProxyTarget('));
+ const encoderBody=source.slice(source.indexOf('function runProxyEncoder('),source.indexOf('function verifyProxy('));
+ assert(/layer\.sourceTimeAtTime\(layer\.inPoint\)/.test(timelineBody));
+ assert(/layer\.sourceTimeAtTime\(layer\.outPoint\)/.test(timelineBody));
+ assert(/layer\.timeRemapEnabled/.test(timelineBody));
+ assert(/Math\.abs\(layer\.stretch-100\)/.test(timelineBody));
+ assert(/mode !== "work"/.test(timelineBody));
+ assert(/ -ss /.test(encoderBody) && / -t /.test(encoderBody));
+ assert(/choice === "work" \? selection\.trim : null/.test(source));
+ assert(!/renderQueued|renderCompIntermediate|queue\.render/.test(encoderBody));
 });
 test('Generated proxies are imported into the Project panel Proxies folder',()=>{
  assert(/function projectProxiesFolder\(\)/.test(source));
@@ -306,8 +318,20 @@ test('Tracker precedes Stamp 3D and offers two native workflows',()=>{
  assert(/app\.executeCommand\(2568\)/.test(source));
  assert(/"3D Camera Tracker"/.test(source));
  assert(/"Motion Tracker"/.test(source));
+ assert(/"Mocha Pro"/.test(source));
  assert(/trackerButton\.onClick = runTrackerChoice/.test(source));
  assert(!/trackerButton\.addEventListener\("mouseover"/.test(source));
+});
+test('Tracker offers Mocha Pro for footage and pre-compositions',()=>{
+ const mochaBody=source.slice(source.indexOf('function applyMochaPro('),source.indexOf('function chooseTrackerMode('));
+ assert(/layer\.source instanceof CompItem/.test(mochaBody));
+ assert(/layer\.source instanceof FootageItem/.test(mochaBody));
+ assert(/"mochaProAE"/.test(mochaBody));
+ assert(/effects\.canAddProperty\(candidates\[i\]\)/.test(mochaBody));
+ assert(/effects\.addProperty\(matchName\)/.test(mochaBody));
+ assert(/Mocha Pro is already applied/.test(mochaBody));
+ assert(/choice="mochapro"/.test(source));
+ assert(/applyMochaPro\(app\.project\.activeItem\)/.test(source));
 });
 test('Motion Tracker creates the next numbered null and stores its source in Assets',()=>{
  const comp={numLayers:3,layer(i){return [{name:'Footage'},{name:'TRACKER_01'},{name:'TRACKER_07'}][i-1];}};
@@ -346,6 +370,7 @@ test('Every visible tool button has a concise hover description',()=>{
   assert(new RegExp(name+'\\.helpTip =? ?"[^"\\n]+"').test(source),name+' tooltip');
  assert(/camera\.helpTip=/.test(source));
  assert(/motion\.helpTip=/.test(source));
+ assert(/mocha\.helpTip=/.test(source));
  assert(/cancel\.helpTip=/.test(source));
  assert(/play\.helpTip=/.test(source));
  assert(/work\.helpTip=/.test(source));

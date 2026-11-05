@@ -1,12 +1,12 @@
 # VFX ToolBox
 
-**0.11.5 beta · A compact After Effects panel for tracking, 3D stamping, Plates, proxies, asset reload and AEP versioning.**
+**0.11.6 beta · A compact After Effects panel for tracking, 3D stamping, Plates, proxies, asset reload and AEP versioning.**
 
 VFX ToolBox groups six everyday VFX actions into a responsive two-row ScriptUI panel. It is designed to keep artists inside After Effects, organize generated assets automatically and avoid replacing existing files.
 
 ## Highlights
 
-- **Tracker** — launch 3D Camera Tracker or Motion Tracker on footage, image sequences and precomps. Motion Tracker also creates sequential `TRACKER_01`, `TRACKER_02` nulls inside an **Assets** folder.
+- **Tracker** — launch 3D Camera Tracker, Motion Tracker or the installed Boris FX Mocha Pro effect on footage, image sequences and precomps. Motion Tracker also creates sequential `TRACKER_01`, `TRACKER_02` nulls inside an **Assets** folder.
 - **Stamp 3D** — capture the current frame, convert it to PSD without opening Photoshop and project it back onto the selected 3D plane. It uses After Effects' direct frame API instead of the Render Queue.
 - **Save Frame** — create sequential Plates at the playhead. Save Plate supports full frames and transparent masked layers; Save Unstretched expands a cut object to the composition edges, then reimports it with Corner Pin restoring its original placement.
 - **Save AEP** — open Save As for a new project or create the next non-destructive `_V1`, `_V2`, `_V3` project version.
@@ -17,7 +17,7 @@ VFX ToolBox groups six everyday VFX actions into a responsive two-row ScriptUI p
 
 **Play Proxy - Same Res | H265** creates an MP4 with AAC audio and assigns it through After Effects' native proxy system.
 
-**Work Proxy - Low Res | QTProxy** creates a ProRes Proxy MOV with PCM audio. It is imported as ordinary footage—not assigned as a native proxy—and VFX ToolBox creates and opens a matching precomp for immediate editing.
+**Work Proxy - Low Res | QTProxy** creates a ProRes Proxy MOV with PCM audio. It is imported as ordinary footage—not assigned as a native proxy—and VFX ToolBox creates and opens a matching precomp for immediate editing. When launched from a trimmed timeline layer, FFmpeg exports only that layer's visible In/Out range without using the After Effects Render Queue. Time-remapped or stretched layers must be normalized first.
 
 Footage proxies are stored beside their original media. Composition proxies are stored beside the saved AEP and use the project name. Both begin at `Name_PROXY_V1` and increment without overwriting earlier files.
 

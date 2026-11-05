@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.11.5 beta (2026-11-05)
+ * VFX ToolBox — 0.11.6 beta (2026-11-05)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.11.5 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.6 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
@@ -554,7 +554,7 @@
         }
         fail("FFmpeg is required to generate proxies. Install ffmpeg and try again.");
     }
-    function runProxyEncoder(ffmpeg, mode, encoder, sourceFile, proxyFile) {
+    function runProxyEncoder(ffmpeg, mode, encoder, sourceFile, proxyFile, trim) {
         var videoSettings;
         if(mode === "work") {
             var filter = "scale=trunc(iw*min(1\\,1080/ih)/2)*2:trunc(ih*min(1\\,1080/ih)/2)*2";
@@ -565,7 +565,10 @@
                 " -b:v 50M -maxrate 50M -bufsize 100M -pix_fmt yuv420p -tag:v hvc1" +
                 " -c:a aac -b:a 192k";
         }
-        var command = shellQuote(ffmpeg.fsName) + " -hide_banner -loglevel error -y -i " + shellQuote(sourceFile.fsName) +
+        var trimStart=trim ? " -ss " + Number(trim.start).toFixed(6) : "";
+        var trimDuration=trim ? " -t " + Number(trim.duration).toFixed(6) : "";
+        var command = shellQuote(ffmpeg.fsName) + " -hide_banner -loglevel error -y" + trimStart +
+            " -i " + shellQuote(sourceFile.fsName) + trimDuration +
             " -map 0:v:0 -map '0:a?' -sn -dn -map_metadata 0" + videoSettings +
             " -movflags +faststart " + shellQuote(proxyFile.fsName) +
             " 2>&1; printf '\\n__VFX_TOOLBOX_EXIT:%s' $?";
@@ -595,7 +598,7 @@
                 "; source is " + item.width + "x" + item.height + ".");
         }
     }
-    function generateProxy(item, folder, mode) {
+    function generateProxy(item, folder, mode, trim) {
         var isComp=item instanceof CompItem, sourceFile=null, intermediate=null, importedProxy=null, workComp=null;
         var ffmpeg = findExecutable("ffmpeg"), ffprobe = findExecutable("ffprobe");
         var extension = mode === "work" ? "mov" : "mp4";
@@ -617,10 +620,10 @@
             }
             if (!item.hasVideo) fail("The selected item has no video stream.");
             message(mode === "work" ? "Work Proxy…" : "Play Proxy…");
-            encoded = runProxyEncoder(ffmpeg, mode, mode === "work" ? "prores_ks" : "hevc_videotoolbox", sourceFile, proxyFile);
+            encoded = runProxyEncoder(ffmpeg, mode, mode === "work" ? "prores_ks" : "hevc_videotoolbox", sourceFile, proxyFile, trim);
             if (!encoded.ok && mode !== "work") {
                 if (proxyFile.exists) proxyFile.remove();
-                encoded = runProxyEncoder(ffmpeg, mode, "libx265", sourceFile, proxyFile);
+                encoded = runProxyEncoder(ffmpeg, mode, "libx265", sourceFile, proxyFile, trim);
             }
             if (!encoded.ok || !proxyFile.exists || proxyFile.length <= 0)
                 fail("FFmpeg could not generate the " + (mode === "work" ? "Work" : "Play") + " Proxy. " +
@@ -1011,6 +1014,35 @@
         // Adobe's localized dictionaries identify Track Motion as stable menu command 2568.
         app.executeCommand(2568);
     }
+    function applyMochaPro(comp) {
+        if (!(comp instanceof CompItem)) fail("Open a composition and select one footage or pre-composition layer.");
+        if (comp.selectedLayers.length !== 1) fail("Select exactly one footage or pre-composition layer in the active composition.");
+        var layer=comp.selectedLayers[0];
+        var isPrecomp=layer instanceof AVLayer && layer.source instanceof CompItem;
+        var isTrackableFootage=layer instanceof AVLayer && layer.source instanceof FootageItem &&
+            layer.source.mainSource instanceof FileSource && !layer.source.mainSource.isStill;
+        if (!isPrecomp && !isTrackableFootage)
+            fail("Select one imported movie, image-sequence, or pre-composition layer.");
+        if (layer.locked) fail("Unlock the selected layer before applying Mocha Pro.");
+        var effects=layer.property("ADBE Effect Parade"),candidates=["mochaProAE","mochaPro_plugin","com.borisfx.ofx.mochaPro"];
+        for(var i=1;i<=effects.numProperties;i++) {
+            var existing=effects.property(i);
+            if(existing && (existing.matchName==="mochaProAE" || existing.matchName==="mochaPro_plugin" ||
+                existing.matchName==="com.borisfx.ofx.mochaPro" || /^Mocha Pro$/i.test(existing.name)))
+                fail("Mocha Pro is already applied to this layer.");
+        }
+        var matchName=null;
+        for(i=0;i<candidates.length;i++) {
+            if(effects.canAddProperty(candidates[i])) { matchName=candidates[i]; break; }
+        }
+        if(!matchName) fail("Mocha Pro is not installed or is not available for the selected layer.");
+        app.beginUndoGroup(TITLE + " Mocha Pro");
+        try {
+            return effects.addProperty(matchName);
+        } finally {
+            app.endUndoGroup();
+        }
+    }
     function chooseTrackerMode() {
         var dialog=new Window("dialog", "Camera Tracker");
         dialog.orientation="column";
@@ -1020,13 +1052,16 @@
         dialog.add("statictext", undefined, "Choose a tracker:");
         var camera=dialog.add("button", undefined, "3D Camera Tracker");
         var motion=dialog.add("button", undefined, "Motion Tracker");
+        var mocha=dialog.add("button", undefined, "Mocha Pro");
         var cancel=dialog.add("button", undefined, "Cancel", {name:"cancel"});
         camera.helpTip="Apply After Effects' native 3D Camera Tracker effect.";
         motion.helpTip="Create a numbered tracker null and open After Effects' native Track Motion workflow.";
+        mocha.helpTip="Apply the installed Boris FX Mocha Pro effect to footage or a precomp.";
         cancel.helpTip="Close without starting a tracker.";
         var choice=null;
         camera.onClick=function(){ choice="camera3d"; dialog.close(1); };
         motion.onClick=function(){ choice="motion"; dialog.close(1); };
+        mocha.onClick=function(){ choice="mochapro"; dialog.close(1); };
         cancel.onClick=function(){ dialog.close(0); };
         dialog.defaultElement=camera;
         dialog.cancelElement=cancel;
@@ -1080,24 +1115,34 @@
         dialog.show();
         return choice;
     }
-    function timelineProxyTarget() {
+    function timelineProxyTarget(mode) {
         var comp=app.project.activeItem;
         if(!(comp instanceof CompItem) || comp.selectedLayers.length!==1) return null;
         var layer=comp.selectedLayers[0];
         if(!(layer instanceof AVLayer) || !(layer.source instanceof FootageItem) ||
             !(layer.source.mainSource instanceof FileSource) || layer.source.mainSource.isStill)
             return null;
-        return layer.source;
+        if(mode !== "work") return {item:layer.source,trim:null};
+        if(layer.timeRemapEnabled)
+            fail("Disable Time Remapping before creating a Work Proxy from a timeline cut.");
+        if(Math.abs(layer.stretch-100)>0.001)
+            fail("Set layer Stretch to 100% before creating a Work Proxy from a timeline cut.");
+        var sourceStart=layer.sourceTimeAtTime(layer.inPoint);
+        var sourceEnd=layer.sourceTimeAtTime(layer.outPoint);
+        sourceStart=Math.max(0,sourceStart);
+        sourceEnd=Math.min(layer.source.duration,sourceEnd);
+        if(!(sourceEnd>sourceStart)) fail("The selected layer has no valid source range to proxy.");
+        return {item:layer.source, trim:{start:sourceStart,duration:sourceEnd-sourceStart}};
     }
-    function selectedProxyTarget() {
-        var timelineTarget=timelineProxyTarget();
+    function selectedProxyTarget(mode) {
+        var timelineTarget=timelineProxyTarget(mode);
         if(timelineTarget) return timelineTarget;
         var selected=app.project.selection;
         var target=selected.length===1 ? selected[0] : null;
         var movie=target instanceof FootageItem && target.mainSource instanceof FileSource;
         if(!target || (!movie && !(target instanceof CompItem)))
             fail("Select one imported movie or composition in the Project panel, or one movie footage layer in the timeline.");
-        return target;
+        return {item:target,trim:null};
     }
     function beginAction(button) {
         if (busy) return;
@@ -1130,9 +1175,12 @@
             if (choice==="camera3d") {
                 message("Applying 3D…");
                 applyCameraTracker(app.project.activeItem);
-            } else {
+            } else if (choice==="motion") {
                 message("Opening Tracker…");
                 applyMotionTracker(app.project.activeItem);
+            } else {
+                message("Applying Mocha…");
+                applyMochaPro(app.project.activeItem);
             }
         } catch (e) { alert(e.message || e.toString(), TITLE); }
         finally {
@@ -1148,12 +1196,12 @@
             if (!choice || !beginAction(proxyButton)) return;
             if (app.preferences.getPrefAsLong("Main Pref Section", "Pref_SCRIPTING_FILE_NETWORK_SECURITY") !== 1)
                 fail("Enable Allow Scripts to Write Files and Access Network in Preferences > Scripting & Expressions.");
-            var target=selectedProxyTarget();
+            var selection=selectedProxyTarget(choice),target=selection.item;
             if (target instanceof CompItem && !confirm(
                 "Generate proxy for this composition?", false, TITLE)) return;
             var folder = proxiesFolder(target);
             if (!folder.exists) fail("The source folder is not available: " + folder.fsName);
-            var file = generateProxy(target, folder, choice);
+            var file = generateProxy(target, folder, choice, choice === "work" ? selection.trim : null);
             message("Proxy Ready");
             $.sleep(500);
         } catch (e) { alert(e.message || e.toString(), TITLE); }
@@ -1237,7 +1285,7 @@
         trackerButton.alignment = ["fill","fill"];
         trackerButton.preferredSize = [145, 36];
         trackerButton.minimumSize = [80, 32];
-        trackerButton.helpTip = "Choose 3D Camera Tracker or Motion Tracker for footage and pre-comps.";
+        trackerButton.helpTip = "Choose 3D Camera Tracker, Motion Tracker or Mocha Pro for footage and pre-comps.";
         trackerButton.onClick = runTrackerChoice;
         captureButton = topRow.add("button", undefined, "Stamp 3D");
         captureButton.alignment = ["fill","fill"];
