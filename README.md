@@ -1,6 +1,6 @@
 # VFX ToolBox
 
-**0.11.4 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
+**0.11.5 beta · After Effects production tools for tracking, 3D stamping, frame capture, proxies, asset reload and project versioning**
 
 VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks into one responsive workspace. It launches native 3D and motion tracking, creates organized tracker targets, projects frames onto 3D planes, captures color-aware PSD Plates, generates playback and editing proxies, reloads imported assets and saves incremental After Effects project versions without overwriting earlier work.
 
@@ -10,14 +10,14 @@ VFX ToolBox is a compact ScriptUI panel that brings common VFX production tasks 
 2. Enable **Allow Scripts to Write Files and Access Network** in **Preferences > Scripting & Expressions**.
 3. Open a square-pixel composition at Full resolution with an ICC working color space.
 4. Select one unlocked 3D visual layer. Keep all corners inside the frame and disable every Solo switch.
-5. To start tracking, select exactly one layer in the active composition and click **Tracker**. 3D Camera Tracker accepts imported movies and image sequences; Motion Tracker also accepts pre-composition layers.
+5. To start tracking, select exactly one layer in the active composition and click **Tracker**. Both 3D Camera Tracker and Motion Tracker accept imported movies, image sequences and pre-composition layers.
 6. To create a proxy, select exactly one imported movie, composition or pre-composition in the Project panel, or select one movie footage layer in the active timeline. Click **Generate Proxy**, then choose **Play Proxy - Same Res | H265** or **Work Proxy - Low Res | QTProxy**.
 7. Click **Stamp 3D** to create a projected texture. Click **Save Frame**, then choose Save Plate or Save Unstretched.
 8. Click **Reload Textures** to force every file-based imported asset in the project to reload from disk.
 
 **Save AEP** saves an existing project beside its current file as `Project_V1.aep`, `Project_V2.aep`, and so on. It scans the folder for the highest existing version, never replaces an earlier file and leaves the newly saved version open as the active After Effects project. For an unsaved project, the first click opens After Effects' native Save As dialog and keeps the chosen initial project open; numbered versions begin on subsequent clicks. Cancelling the dialog creates nothing.
 
-**Tracker** is a standard clickable button that opens a two-option chooser. **3D Camera Tracker** applies After Effects' native tracker effect to a selected unlocked 2D movie or image-sequence layer and refuses duplicate application. **Motion Tracker** accepts an imported movie, image sequence or pre-composition layer, creates a 2D Null named `TRACKER_01`, `TRACKER_02`, and so on, then invokes After Effects' native Track Motion command for that layer. Its generated Null source is stored in a top-level **Assets** folder in the Project panel, which VFX ToolBox creates when needed.
+**Tracker** is a standard clickable button that opens a two-option chooser. **3D Camera Tracker** applies After Effects' native tracker effect to a selected unlocked 2D movie, image-sequence or pre-composition layer and refuses duplicate application. **Motion Tracker** accepts the same three source types, creates a 2D Null named `TRACKER_01`, `TRACKER_02`, and so on, then invokes After Effects' native Track Motion command for that layer. Its generated Null source is stored in a top-level **Assets** folder in the Project panel, which VFX ToolBox creates when needed.
 
 **Generate Proxy** opens a two-option chooser. **Play Proxy - Same Res | H265** creates a same-resolution H.265/HEVC MP4 at a 50 Mbps target video bitrate with AAC audio. **Work Proxy - Low Res | QTProxy** creates an editing-friendly QuickTime MOV using Apple ProRes 422 Proxy with PCM audio; it never upscales, limits height to 1080 pixels and preserves the source aspect ratio.
 

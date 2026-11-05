@@ -305,3 +305,8 @@ No explicit license grant was found in the inspected v1.7 file. The MIT License 
 - Renames the Versioning control to `Save AEP`.
 - Opens After Effects' native Save As dialog when the project has never been saved.
 - Saves existing projects with unpadded `_V1`, `_V2`, `_V3` and subsequent suffixes without replacing earlier versions.
+
+# Pre-composition tracking parity in 0.11.5 beta
+
+- Allows both 3D Camera Tracker and Motion Tracker to target imported footage or pre-composition layers.
+- Keeps the 3D Camera Tracker requirements for one unlocked 2D layer and duplicate-effect prevention.

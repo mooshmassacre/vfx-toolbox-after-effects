@@ -4,7 +4,7 @@ const exposed=source.replace('    build();','    this.api={verifyPNG:verifyPNG,v
 let tests=0;
 function test(name,fn){fn();tests++;console.log('PASS '+name);}
 test('Project identity is VFX ToolBox',()=>{
- assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.4 beta"/.test(source));
+ assert(/var TITLE = "VFX ToolBox", VERSION = "0\.11\.5 beta"/.test(source));
  assert(/\/VFX ToolBox Textures/.test(source));
  assert(!/var TITLE = "PlaneTrace"/.test(source));
 });
@@ -324,6 +324,14 @@ test('Motion Tracker accepts pre-composition layers',()=>{
  assert(/layer\.source instanceof CompItem/.test(motionBody));
  assert(/!isPrecomp && !isTrackableFootage/.test(motionBody));
  assert(/movie, image-sequence, or pre-composition layer/.test(motionBody));
+});
+test('3D Camera Tracker accepts footage and pre-composition layers',()=>{
+ const cameraBody=source.slice(source.indexOf('function applyCameraTracker('),source.indexOf('function applyMotionTracker('));
+ assert(/var isPrecomp=layer instanceof AVLayer && layer\.source instanceof CompItem/.test(cameraBody));
+ assert(/var isTrackableFootage=layer instanceof AVLayer && layer\.source instanceof FootageItem/.test(cameraBody));
+ assert(/!isPrecomp && !isTrackableFootage/.test(cameraBody));
+ assert(/movie, image-sequence, or pre-composition layer/.test(cameraBody));
+ assert(/2D footage or pre-composition layer/.test(cameraBody));
 });
 test('Save AEP opens Save As once, then saves the next project version and keeps it open',()=>{
  assert(/function saveNextProjectVersion\(\)/.test(source));

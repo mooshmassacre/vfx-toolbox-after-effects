@@ -1,5 +1,5 @@
 /*
- * VFX ToolBox — 0.11.4 beta (2026-11-05)
+ * VFX ToolBox — 0.11.5 beta (2026-11-05)
  * Custom modernization of the workflow in AE-3DPlaneStamp v1.7.
  * Original concept/script credits: Nate Lovell / NT Productions and Hashi.
  * Independent custom edition; not the authors' official Version 2.
@@ -7,7 +7,7 @@
  * ExtendScript / ScriptUI. Plate export is flattened PSD at the project bit depth.
  */
 (function (host) {
-    var TITLE = "VFX ToolBox", VERSION = "0.11.4 beta";
+    var TITLE = "VFX ToolBox", VERSION = "0.11.5 beta";
     var panel, versioningButton, trackerButton, proxyButton, captureButton, saveButton, reloadButton, activeButton;
     var busy = false, trackerMenuOpen = false, proxyMenuOpen = false, saveMenuOpen = false;
 
@@ -972,14 +972,16 @@
         return {reloaded: reloaded, failed: failed};
     }
     function applyCameraTracker(comp) {
-        if (!(comp instanceof CompItem)) fail("Open a composition and select one footage layer.");
-        if (comp.selectedLayers.length !== 1) fail("Select exactly one footage layer in the active composition.");
+        if (!(comp instanceof CompItem)) fail("Open a composition and select one footage or pre-composition layer.");
+        if (comp.selectedLayers.length !== 1) fail("Select exactly one footage or pre-composition layer in the active composition.");
         var layer=comp.selectedLayers[0];
-        if (!(layer instanceof AVLayer) || !layer.source || !(layer.source instanceof FootageItem) ||
-            !(layer.source.mainSource instanceof FileSource) || layer.source.mainSource.isStill)
-            fail("Select one imported movie or image-sequence layer.");
-        if (layer.locked) fail("Unlock the footage layer before applying Camera Tracker.");
-        if (layer.threeDLayer) fail("Camera Tracker requires a 2D footage layer.");
+        var isPrecomp=layer instanceof AVLayer && layer.source instanceof CompItem;
+        var isTrackableFootage=layer instanceof AVLayer && layer.source instanceof FootageItem &&
+            layer.source.mainSource instanceof FileSource && !layer.source.mainSource.isStill;
+        if (!isPrecomp && !isTrackableFootage)
+            fail("Select one imported movie, image-sequence, or pre-composition layer.");
+        if (layer.locked) fail("Unlock the selected layer before applying Camera Tracker.");
+        if (layer.threeDLayer) fail("Camera Tracker requires a 2D footage or pre-composition layer.");
         var effects=layer.property("ADBE Effect Parade"), matchName="ADBE 3D Tracker";
         if (effects.property(matchName)) fail("3D Camera Tracker is already applied to this layer.");
         if (!effects.canAddProperty(matchName)) fail("3D Camera Tracker is not available for the selected layer.");
@@ -1235,7 +1237,7 @@
         trackerButton.alignment = ["fill","fill"];
         trackerButton.preferredSize = [145, 36];
         trackerButton.minimumSize = [80, 32];
-        trackerButton.helpTip = "Choose 3D Camera Tracker for footage or Motion Tracker for footage and pre-comps.";
+        trackerButton.helpTip = "Choose 3D Camera Tracker or Motion Tracker for footage and pre-comps.";
         trackerButton.onClick = runTrackerChoice;
         captureButton = topRow.add("button", undefined, "Stamp 3D");
         captureButton.alignment = ["fill","fill"];
